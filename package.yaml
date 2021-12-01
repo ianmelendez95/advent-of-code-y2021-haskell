@@ -24,6 +24,15 @@ dependencies:
 
 library:
   source-dirs: src
+  dependencies: 
+  - array
+  - text
+  - containers
+  - sort
+  - deque
+  - megaparsec
+  - parser-combinators
+  - mtl
 
 executables:
   advent-of-code-y2021-haskell-exe:
@@ -35,6 +44,7 @@ executables:
     - -with-rtsopts=-N
     dependencies:
     - advent-of-code-y2021-haskell
+
 
 tests:
   advent-of-code-y2021-haskell-test:
