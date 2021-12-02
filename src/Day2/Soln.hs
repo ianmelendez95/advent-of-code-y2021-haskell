@@ -46,13 +46,9 @@ soln =
 solnWithArrayOps :: T.Text -> Int
 solnWithArrayOps input = 
   let input_lines = T.lines input
-      
       fwds = map fwdVal input_lines
-
-      cumulative_aims :: [Int]
       cumulative_aims = scanl1 (+) (map aimVal input_lines)
-
-  in sum fwds * sum (zipWith (*) fwds cumulative_aims)
+   in sum fwds * sum (zipWith (*) fwds cumulative_aims)
   where 
     fwdVal :: T.Text -> Int
     fwdVal line = 
@@ -71,7 +67,7 @@ solnWithArrayOps input =
 solnWithFold :: T.Text -> Int
 solnWithFold input = 
   let (horiz, depth, _) = foldl' fold (0,0,0) (T.lines input)
-  in horiz * depth
+   in horiz * depth
   where 
     fold :: (Int, Int, Int) -> T.Text -> (Int, Int, Int)
     fold (horiz, depth, aim) line = 
