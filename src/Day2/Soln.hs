@@ -9,7 +9,7 @@ import qualified Data.Text.Read as TR
 
 
 inputFile :: FilePath
-inputFile = "src/Day2/short-input.txt"
+inputFile = "src/Day2/full-input.txt"
 
 -- displacement = (horizontal, depth)
 type Disp = (Int, Int)
@@ -34,7 +34,7 @@ soln =
 
 
 cmdToDisp :: Cmd -> Disp
-cmdToDisp (Fwd, dist)  = (5, 0)
+cmdToDisp (Fwd, dist)  = (dist, 0)
 cmdToDisp (Down, dist) = (0, dist)
 cmdToDisp (Up, dist)   = (0, -dist)
 
