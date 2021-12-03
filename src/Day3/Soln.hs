@@ -11,7 +11,7 @@ import Data.List (foldl', transpose)
 
 
 inputFile :: FilePath
-inputFile = "src/Day3/short-input.txt"
+inputFile = "src/Day3/full-input.txt"
 
 
 soln :: IO ()
@@ -27,6 +27,11 @@ soln =
          -- epsilon
          uncommon_bits = map not common_bits
 
+         byte_trie = trieFromList bytes
+
+         oxygen_bits = trieCommonPath byte_trie
+         co2_bits = trieUncommonPath byte_trie
+
      putStrLn   "[Gamma]"
      putStrLn $ "Binary:  " ++ showBits common_bits
      putStrLn $ "Decimal: " ++ show (bitsToDecimal common_bits)
@@ -35,8 +40,20 @@ soln =
      putStrLn $ "Binary:  " ++ showBits uncommon_bits
      putStrLn $ "Decimal: " ++ show (bitsToDecimal uncommon_bits)
      putStrLn ""
-     putStrLn   "[Answer]"
+     putStrLn   "[Answer - Part 1]"
      print      (bitsToDecimal uncommon_bits * bitsToDecimal common_bits)
+     putStrLn ""
+     putStrLn   "[Oxygen]"
+     putStrLn $ "Binary:  " ++ showBits oxygen_bits
+     putStrLn $ "Decimal: " ++ show (bitsToDecimal oxygen_bits)
+     putStrLn ""
+     putStrLn   "[CO2]"
+     putStrLn $ "Binary:  " ++ showBits co2_bits
+     putStrLn $ "Decimal: " ++ show (bitsToDecimal co2_bits)
+     putStrLn ""
+     putStrLn   "[Answer - Part 2]"
+     print      (bitsToDecimal oxygen_bits * bitsToDecimal co2_bits)
+    --  putStrLn $ showTrie byte_trie
 
 readBytes :: IO [[Bool]]
 readBytes = 
@@ -96,6 +113,20 @@ trieSize :: Trie -> Int
 trieSize Empty = 0
 trieSize (Leaf _) = 1
 trieSize (Node s _ _) = s
+
+trieCommonPath :: Trie -> [Bool]
+trieCommonPath Empty = []
+trieCommonPath (Leaf bs) = bs
+trieCommonPath (Node _ zero one) 
+  | trieSize one >= trieSize zero = True : trieCommonPath one
+  | otherwise                     = False : trieCommonPath zero
+
+trieUncommonPath :: Trie -> [Bool]
+trieUncommonPath Empty = []
+trieUncommonPath (Leaf bs) = bs
+trieUncommonPath (Node _ zero one) 
+  | trieSize zero <= trieSize one = False : trieUncommonPath zero
+  | otherwise                     = True : trieUncommonPath one
 
 insertTrie :: [Bool] -> Trie -> Trie
 insertTrie bytes = traverse bytes 
