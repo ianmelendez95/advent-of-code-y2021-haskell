@@ -11,7 +11,7 @@ import Data.List (foldl', transpose)
 
 
 inputFile :: FilePath
-inputFile = "src/Day3/full-input.txt"
+inputFile = "src/Day3/short-input.txt"
 
 
 soln :: IO ()
@@ -38,9 +38,16 @@ soln =
      putStrLn   "[Answer]"
      print      (bitsToDecimal uncommon_bits * bitsToDecimal common_bits)
 
+readBytes :: IO [[Bool]]
+readBytes = 
+  do content <- TIO.readFile inputFile
+     pure $ map readByte (T.lines content)
 
 showBits :: [Bool] -> String
 showBits = map (\b -> if b then '1' else '0') 
+
+bitsFromString :: String -> [Bool]
+bitsFromString = map (\c -> if c == '0' then False else True)
 
 
 bitsToDecimal :: [Bool] -> Int
@@ -82,15 +89,22 @@ singletonTrie :: [Bool] -> Trie
 singletonTrie = Leaf
 
 trieFromList :: [[Bool]] -> Trie
-trieFromList = foldr insertTrie emptyTrie
+trieFromList [] = Empty
+trieFromList (x:xs) = foldr insertTrie (singletonTrie x) xs
+
+trieSize :: Trie -> Int
+trieSize Empty = 0
+trieSize (Leaf _) = 1
+trieSize (Node s _ _) = s
 
 insertTrie :: [Bool] -> Trie -> Trie
 insertTrie bytes = traverse bytes 
   where 
     traverse :: [Bool] -> Trie -> Trie
 
+    traverse bs Empty = Leaf bs
+
     traverse [] (Node size zero one) = error $ "Fully traversed to node: " ++ showBits bytes
-    traverse [] Empty = Leaf bytes
     traverse [] l@(Leaf _) = l
 
     traverse (b:bs) (Node size zero one) 
@@ -107,6 +121,21 @@ insertTrie bytes = traverse bytes
       | (not b) && b' = Node 2 (singletonTrie bs)  (singletonTrie bs')
 
       | otherwise = error $ "Conditions should be exhausted, original input: " ++ showBits bytes
+    
+    traverse (b:bs) (Leaf []) = 
+      error $ "Encountered empty leaf with non empty bytes! " ++ showBits bytes ++ " : " ++ showBits (b:bs)
 
-    traverse (b:bs) Empty = Leaf bytes
-
+showTrie :: Trie -> String
+showTrie = unlines . doShow 
+  where 
+    doShow :: Trie -> [String]
+    doShow (Empty) = ["EMPTY"] 
+    doShow (Leaf byte) = [showBits byte]
+    doShow (Node size zero one) = 
+      let lines = 
+               ["0 [" ++ show (trieSize zero) ++ "]"] 
+            ++ map ("| " ++) (doShow zero)
+            ++ ["1 [" ++ show (trieSize one) ++ "]"] 
+            ++ map ("| " ++) (doShow one)
+            ++ [""]
+       in lines
