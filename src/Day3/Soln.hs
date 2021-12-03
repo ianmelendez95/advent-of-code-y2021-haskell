@@ -39,9 +39,8 @@ soln =
      print      (bitsToDecimal uncommon_bits * bitsToDecimal common_bits)
 
 
-  where 
-    showBits :: [Bool] -> String
-    showBits = map (\b -> if b then '1' else '0') 
+showBits :: [Bool] -> String
+showBits = map (\b -> if b then '1' else '0') 
 
 
 bitsToDecimal :: [Bool] -> Int
@@ -66,3 +65,48 @@ readByte = map readBit . T.unpack
     readBit '0' = False
     readBit '1' = True
     readBit c = error $ "Unrecognized bit char: " ++ show c
+
+
+--------------------------------------------------------------------------------
+-- Byte Trie
+
+
+data Trie = Node Int Trie Trie
+          | Leaf [Bool]
+          | Empty
+
+emptyTrie :: Trie
+emptyTrie = Empty
+
+singletonTrie :: [Bool] -> Trie
+singletonTrie = Leaf
+
+trieFromList :: [[Bool]] -> Trie
+trieFromList = foldr insertTrie emptyTrie
+
+insertTrie :: [Bool] -> Trie -> Trie
+insertTrie bytes = traverse bytes 
+  where 
+    traverse :: [Bool] -> Trie -> Trie
+
+    traverse [] (Node size zero one) = error $ "Fully traversed to node: " ++ showBits bytes
+    traverse [] Empty = Leaf bytes
+    traverse [] l@(Leaf _) = l
+
+    traverse (b:bs) (Node size zero one) 
+      | b         = Node (size + 1) zero (traverse bs one)
+      | otherwise = Node (size + 1) (traverse bs zero) one
+
+    traverse (b:bs) (Leaf (b':bs'))
+      -- both into same branch
+      | b && b'             = Node 2 Empty (traverse bs (singletonTrie bs'))
+      | (not b) && (not b') = Node 2 (traverse bs (singletonTrie bs')) Empty
+
+      -- both in opposite branches
+      | b && (not b') = Node 2 (singletonTrie bs') (singletonTrie bs)
+      | (not b) && b' = Node 2 (singletonTrie bs)  (singletonTrie bs')
+
+      | otherwise = error $ "Conditions should be exhausted, original input: " ++ showBits bytes
+
+    traverse (b:bs) Empty = Leaf bytes
+
