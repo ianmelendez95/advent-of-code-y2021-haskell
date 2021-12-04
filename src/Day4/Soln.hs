@@ -8,8 +8,8 @@ import qualified Data.Text as T
 import qualified Data.Text.IO as TIO
 import qualified Data.Text.Read as TR
 
-
-import Data.List (intercalate, transpose, sort, isSubsequenceOf, find, (\\))
+import Data.Ord (comparing)
+import Data.List (intercalate, transpose, sort, isSubsequenceOf, find, (\\), maximumBy)
 import Data.Maybe (listToMaybe, catMaybes)
 import Control.Arrow (Arrow(first))
 
@@ -19,11 +19,6 @@ type Board = [[Int]]
 
 inputFile :: FilePath
 inputFile = "src/Day4/full-input.txt"
-
-{-
-[0,2,4,5,7,9,11,14,17,21,23,24]
--}
-
 
 
 soln :: IO ()
@@ -39,6 +34,14 @@ soln =
           win_sum = boardScore win_draw_seq win_board
           last_draw = draws !! (length win_draw_seq - 1)
 
+          -- part 2
+
+          rev_draw_seqs = reverse draw_seqs
+          round_to_board = map (boardWinSeq draw_seqs) seqs_to_board
+          (_, lose_draw_seq, lose_board) = maximumBy (comparing fst3) round_to_board
+
+          lose_sum = boardScore lose_draw_seq lose_board
+          last_lose_draw = draws !! (length lose_draw_seq - 1)
 
       putStrLn "[Setup]"
       print draws
@@ -47,8 +50,8 @@ soln =
       putStrLn ""
 
       putStrLn "[Comparison]"
-      putStrLn $ "Draw Seqs: " ++ show draw_seqs
-      mapM_ printSeqsToBoard seqs_to_board
+      -- putStrLn $ "Draw Seqs: " ++ show draw_seqs
+      -- mapM_ printSeqsToBoard seqs_to_board
 
 
       putStrLn "[WINNER!]"
@@ -58,6 +61,14 @@ soln =
       putStrLn $ "Last Draw: " ++ show last_draw
       putStrLn $ "Score:     " ++ show (win_sum * last_draw)
 
+      putStrLn ""
+      putStrLn "[LOSER!]"
+      putStrLn $ "Board:\n" ++ showBoard lose_board
+      putStrLn ""
+      putStrLn $ "Num Sum:   " ++ show lose_sum
+      putStrLn $ "Last Draw: " ++ show last_lose_draw
+      putStrLn $ "Score:     " ++ show (lose_sum * last_lose_draw)
+
     
 
 
@@ -66,6 +77,17 @@ soln =
     boardScore draw_seq board = 
       let board_nums = concat board
        in sum (board_nums \\ draw_seq)
+    
+    boardWinSeq :: [[Int]] -> ([[Int]], Board) -> (Int, [Int], Board)
+    boardWinSeq draw_seqs board_entry =
+      let win_draw_seq = 
+            find (`isWinningBoardEntry` board_entry) draw_seqs
+       in case win_draw_seq of 
+            Nothing -> error $ "Board doesn't have a win sequence: " ++ showBoard (snd board_entry)
+            Just win_draw -> (length win_draw, win_draw, snd board_entry)
+
+    fst3 :: (a,b,c) -> a
+    fst3 (x,_,_) = x
 
     printSeqsToBoard :: ([[Int]], Board) -> IO ()
     printSeqsToBoard (sqs, b) =
