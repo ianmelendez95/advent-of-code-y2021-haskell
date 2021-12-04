@@ -27,7 +27,7 @@ inputFile = "src/Day4/short-input.txt"
 For part 1 we leverage `isSubsequenceOf` 
 (a better alternative I didn't happen upon later would
 be to leverage Set semantics, using `isSubsetOf`, 
-detailed in [Alternative Approach]).
+detailed in [Set Approach]).
 
 The idea is that each board has 10 winning 'sequences' 
 of numbers. Each row is a winning sequence, and each column
@@ -94,21 +94,23 @@ observed which board needed the *fewest* draws in
 order to win).
 
 
-[Alternative Approach]
+[Set Approach]
 
 A better approach with better algorithmic complexity
 would be to, instead of observing every 'sequence',
 you observe every 'set'.
 
 Then instead of observing whether any given 
-winning sequence of numbers is a subsequence 
-of the drawn number sequence so far, you 
-observe whether any given winning *set* of 
-numbers is a *subset* of the drawn number
-*set* so far.
+winning sequence of numbers for a board 
+is a subsequence of the drawn number sequence so far, 
+you observe whether any given *winning set* of 
+numbers is a *subset* of the *drawn number
+set* so far.
 
-Intuitively this would result in operations 
-of complexity O(logn) rather than O(n).
+This would result in operations 
+of complexity O(logn) rather than O(n),
+likely having a reduction in algorithmic
+complexity of the whole process.
 -}
 soln :: IO ()
 soln = 
