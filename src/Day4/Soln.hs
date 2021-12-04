@@ -1,4 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE TupleSections #-}
+
 
 module Day4.Soln where 
 
@@ -7,15 +9,16 @@ import qualified Data.Text.IO as TIO
 import qualified Data.Text.Read as TR
 
 
-import Data.List (intercalate, transpose, sort, isSubsequenceOf, find)
+import Data.List (intercalate, transpose, sort, isSubsequenceOf, find, (\\))
 import Data.Maybe (listToMaybe, catMaybes)
+import Control.Arrow (Arrow(first))
 
 
 type Board = [[Int]]
 
 
 inputFile :: FilePath
-inputFile = "src/Day4/short-input.txt"
+inputFile = "src/Day4/full-input.txt"
 
 {-
 [0,2,4,5,7,9,11,14,17,21,23,24]
@@ -30,8 +33,11 @@ soln =
           seqs_to_board = map (\b -> (boardToSortedSeqs b, b)) boards
           draw_seqs = map sort (drop 4 $ listToCumList draws)
 
-          winning_boards = map (\draw_seq -> find (isWinningBoardEntry draw_seq) seqs_to_board) draw_seqs
-          first_winning = snd . head $ catMaybes winning_boards
+          winning_boards = map (\draw_seq -> (draw_seq,) . snd <$> find (isWinningBoardEntry draw_seq) seqs_to_board) draw_seqs
+          (win_draw_seq, win_board) = head $ catMaybes winning_boards
+
+          win_sum = boardScore win_draw_seq win_board
+          last_draw = draws !! (length win_draw_seq - 1)
 
 
       putStrLn "[Setup]"
@@ -46,12 +52,21 @@ soln =
 
 
       putStrLn "[WINNER!]"
-      putStrLn $ showBoard first_winning
+      putStrLn $ "Board:\n" ++ showBoard win_board
+      putStrLn ""
+      putStrLn $ "Num Sum:   " ++ show win_sum
+      putStrLn $ "Last Draw: " ++ show last_draw
+      putStrLn $ "Score:     " ++ show (win_sum * last_draw)
 
     
 
 
   where 
+    boardScore :: [Int] -> Board -> Int
+    boardScore draw_seq board = 
+      let board_nums = concat board
+       in sum (board_nums \\ draw_seq)
+
     printSeqsToBoard :: ([[Int]], Board) -> IO ()
     printSeqsToBoard (sqs, b) =
       do putStrLn "[Seqs]"
