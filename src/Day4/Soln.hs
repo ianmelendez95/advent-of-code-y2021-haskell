@@ -7,7 +7,9 @@ import qualified Data.Text.IO as TIO
 import qualified Data.Text.Read as TR
 
 
-import Data.List (intercalate)
+import Data.List (intercalate, transpose, sort, isInfixOf, find)
+import Data.Maybe (listToMaybe, catMaybes)
+
 
 type Board = [[Int]]
 
@@ -20,9 +22,49 @@ soln :: IO ()
 soln = 
   do content <- TIO.readFile inputFile
      let (draws, boards) = parseInput content
+         seqs_to_board = map (\b -> (boardToSortedSeqs b, b)) boards
+         draw_seqs = map sort (drop 4 $ listToCumList draws)
+
+         winning_boards = map (\draw_seq -> find (isWinningBoardEntry draw_seq) seqs_to_board) draw_seqs
+         first_winning = snd . head $ catMaybes winning_boards
+
+
+     putStrLn "[Setup]"
      print draws
      putStrLn ""
      putStrLn $ intercalate "\n" (map showBoard boards)
+     putStrLn ""
+
+     putStrLn "[Comparison]"
+     --  putStrLn $ "Draw Seqs: " ++ show draw_seqs
+     mapM_ printSeqsToBoard seqs_to_board
+
+
+     putStrLn "[WINNER!]"
+     putStrLn $ showBoard first_winning
+
+    
+
+
+  where 
+    printSeqsToBoard :: ([[Int]], Board) -> IO ()
+    printSeqsToBoard (sqs, b) =
+      do putStrLn "[Seqs]"
+         putStrLn $ showBoard sqs
+         putStrLn "[Board]"
+         putStrLn $ showBoard b
+
+    isWinningBoardEntry :: [Int] -> ([[Int]], Board) -> Bool
+    isWinningBoardEntry draw_seq (board_seqs, _) = any (`isInfixOf` draw_seq) board_seqs
+
+
+-- [1,2,3] -> [[1], [1,2], [1,2,3]]
+listToCumList :: [Int] -> [[Int]]
+listToCumList = scanl1 (++) . map (:[])
+
+
+boardToSortedSeqs :: Board -> [[Int]]
+boardToSortedSeqs board = map sort (board ++ transpose board)
 
 
 showBoard :: Board -> String
