@@ -25,8 +25,8 @@ inputFile = "src/Day4/short-input.txt"
 [Part 1]
 
 For part 1 we leverage `isSubsequenceOf` 
-(a better alternative I didn't happen upon later would
-be to leverage Set semantics, using `isSubsetOf`, 
+(a better alternative I didn't happen upon until later 
+would be to leverage Set semantics, using `isSubsetOf`, 
 detailed in [Set Approach]).
 
 The idea is that each board has 10 winning 'sequences' 
