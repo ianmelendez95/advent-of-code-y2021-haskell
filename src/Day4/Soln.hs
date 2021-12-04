@@ -18,9 +18,98 @@ type Board = [[Int]]
 
 
 inputFile :: FilePath
-inputFile = "src/Day4/full-input.txt"
+inputFile = "src/Day4/short-input.txt"
 
 
+{-
+[Part 1]
+
+For part 1 we leverage `isSubsequenceOf` 
+(a better alternative I didn't happen upon later would
+be to leverage Set semantics, using `isSubsetOf`, 
+detailed in [Alternative Approach]).
+
+The idea is that each board has 10 winning 'sequences' 
+of numbers. Each row is a winning sequence, and each column
+is a winning sequence, so 5 rows + 5 columns = 10 sequences.
+
+We sort each of these sequences to be able to perform an
+efficient (O(n)) `isSubsequenceOf` on the list containing 
+all drawn numbers so far, for each drawn number. 
+
+Thus to setup we first collect
+
+  1. Each cumulative sequence of draws
+     e.g. if the draws are 
+       
+     7,4,9,5,11,17,23,2,0,14,21,24,10,16,13,6,15,25,12,22,18,20,8,19,3,26,1
+
+     then our 
+     cumulative, sorted sequences would be 
+
+     [[4,5,7,9,11],[4,5,7,9,11,17],[4,5,7,9,11,17,23],...]
+
+  2. Each list of winning sequences of each board
+     e.g. if we have the board 
+
+     22 13 17 11  0
+      8  2 23  4 24
+     21  9 14 16  7
+      6 10  3 18  5
+      1 12 20 15 19
+
+    Then its winning, sorted sequences are
+
+    [0,11,13,17,22]
+    [2,4,8,23,24]
+    [7,9,14,16,21]
+    [3,5,6,10,18]
+    [1,12,15,19,20]
+    [1,6,8,21,22]
+    [2,9,10,12,13]
+    [3,14,17,20,23]
+    [4,11,15,16,18]
+    [0,5,7,19,24]
+    
+With these in hand, we can then quickly identify (O(m*n), m = rows, n = cols)
+whether any given board has won with any given draw sequence,
+by observing if any of the winning sequences of the board 
+'is a subsequence of' the sorted draw sequence.
+
+Thus, we iterate through the cumulative sequences 
+(simulating 'drawing' each number), and identify the 
+first set of draws that results in a winning board,
+and derive the score from the winning board and the 
+last drawn number.
+
+
+[Part 2]
+
+Part 2 is very similar to Part 1. 
+The difference is that for part 2 you want to identify
+the *last* draw sequence to win for every board, 
+and identify which board needed the most draws in
+order to win (as opposed to part 1, where you
+observed which board needed the *fewest* draws in 
+order to win).
+
+
+[Alternative Approach]
+
+A better approach with better algorithmic complexity
+would be to, instead of observing every 'sequence',
+you observe every 'set'.
+
+Then instead of observing whether any given 
+winning sequence of numbers is a subsequence 
+of the drawn number sequence so far, you 
+observe whether any given winning *set* of 
+numbers is a *subset* of the drawn number
+*set* so far.
+
+Intuitively this would result in operations 
+of complexity O(logn) rather than O(n).
+-}
 soln :: IO ()
 soln = 
   do  content <- TIO.readFile inputFile
@@ -50,8 +139,8 @@ soln =
       putStrLn ""
 
       putStrLn "[Comparison]"
-      -- putStrLn $ "Draw Seqs: " ++ show draw_seqs
-      -- mapM_ printSeqsToBoard seqs_to_board
+      putStrLn $ "Draw Seqs: " ++ show draw_seqs
+      mapM_ printSeqsToBoard seqs_to_board
 
 
       putStrLn "[WINNER!]"
