@@ -11,25 +11,65 @@ import Data.List (intercalate, transpose, sort, isSubsequenceOf, find, (\\), max
 import Data.Maybe (listToMaybe, catMaybes)
 import Control.Arrow (Arrow(first))
 
+import qualified Data.Map.Strict as Map
+
 
 inputFile :: FilePath
-inputFile = "src/Day5/short-input.txt"
+inputFile = "src/Day5/full-input.txt"
 
 
 soln :: IO ()
 soln = 
   do content <- TIO.readFile inputFile
      let segments = parseInput content
-         part1_segs = filter horizOrVertSegment segments
-     
-     putStrLn "[Segments]"
-     mapM_ print segments
-     putStrLn ""
-     putStrLn "[Segments]"
-     mapM_ print part1_segs
+         p1_segs = filter horizOrVertSegment segments
+         p1_seg_points = map segmentPoints p1_segs
 
+         point_counts = countPoints (concat p1_seg_points)
+
+         p1_overlap_points = overlapPoints point_counts
+
+    --  putStrLn "[Segments]"
+    --  mapM_ print segments
+    --  putStrLn ""
+    --  putStrLn "[Part 1 Segments]"
+    --  mapM_ print p1_segs
+    --  putStrLn ""
+    --  putStrLn "[Part 1 Segment Points]"
+    --  mapM_ print p1_seg_points
+    --  putStrLn ""
+    --  putStrLn "[Part 1 Overlap Points]"
+    --  mapM_ print p1_overlap_points
+     putStrLn ""
+     putStrLn $ "Count: " ++ show (length p1_overlap_points)
+
+
+
+--------------------------------------------------------------------------------
+-- Counter
+
+type PointCounter = Map.Map (Int,Int) Int
+
+overlapPoints :: PointCounter -> [(Int,Int)]
+overlapPoints = map fst . filter ((> 1) . snd) . Map.toList
+
+countPoints :: [(Int,Int)] -> PointCounter
+countPoints = foldr countPoint Map.empty
+
+countPoint :: (Int,Int) -> PointCounter -> PointCounter
+countPoint point = Map.insertWith (+) point 1
+
+
+--------------------------------------------------------------------------------
+-- Segments
 
 type Segment = ((Int, Int), (Int, Int))
+
+segmentPoints :: Segment -> [(Int,Int)]
+segmentPoints seg@((x1,y1),(x2,y2))
+  | x1 == x2 = zip (repeat x1) [(min y1 y2)..(max y1 y2)]
+  | y1 == y2 = zip [(min x1 x2)..(max x1 x2)] (repeat y1)
+  | otherwise = error $ "Not considering diagonal lines: " ++ show seg 
 
 horizOrVertSegment :: Segment -> Bool
 horizOrVertSegment ((x1,y1),(x2,y2)) = x1 == x2 || y1 == y2
