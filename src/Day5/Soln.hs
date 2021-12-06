@@ -22,12 +22,20 @@ soln :: IO ()
 soln = 
   do content <- TIO.readFile inputFile
      let segments = parseInput content
-         p1_segs = filter horizOrVertSegment segments
-         p1_seg_points = map segmentPoints p1_segs
+        --  p1_segs = filter horizOrVertSegment segments
+        --  p1_seg_points = map segmentPoints p1_segs
 
-         point_counts = countPoints (concat p1_seg_points)
+        --  point_counts = countPoints (concat p1_seg_points)
 
-         p1_overlap_points = overlapPoints point_counts
+        --  p1_overlap_points = overlapPoints point_counts
+
+         -- part 2
+
+         p2_segs = filter (\s -> horizOrVertSegment s || diagSegment s)
+                          segments
+         p2_seg_points = map segmentPoints p2_segs
+         point_counts = countPoints (concat p2_seg_points)
+         p2_overlap_points = overlapPoints point_counts
 
     --  putStrLn "[Segments]"
     --  mapM_ print segments
@@ -40,8 +48,22 @@ soln =
     --  putStrLn ""
     --  putStrLn "[Part 1 Overlap Points]"
     --  mapM_ print p1_overlap_points
-     putStrLn ""
-     putStrLn $ "Count: " ++ show (length p1_overlap_points)
+    --  putStrLn ""
+    --  putStrLn $ "Count: " ++ show (length p1_overlap_points)
+
+    -- PART 2
+    --  putStrLn ""
+    --  putStrLn "[Part 2 Segments]"
+    --  mapM_ print p2_segs
+    --  putStrLn ""
+    --  putStrLn "[Part 2 Segment Points]"
+    --  mapM_ print p2_seg_points
+    --  putStrLn ""
+    --  putStrLn "[Part 2 Overlap Points]"
+    --  mapM_ print p2_overlap_points
+    --  putStrLn ""
+     putStrLn $ "Count: " ++ show (length p2_overlap_points)
+
 
 
 
@@ -69,7 +91,16 @@ segmentPoints :: Segment -> [(Int,Int)]
 segmentPoints seg@((x1,y1),(x2,y2))
   | x1 == x2 = zip (repeat x1) [(min y1 y2)..(max y1 y2)]
   | y1 == y2 = zip [(min x1 x2)..(max x1 x2)] (repeat y1)
-  | otherwise = error $ "Not considering diagonal lines: " ++ show seg 
+  | diagSegment seg = zip (iterAxis x1 x2) (iterAxis y1 y2)
+  | otherwise = error $ "Not considering segment type: " ++ show seg 
+  where 
+    iterAxis :: Int -> Int -> [Int]
+    iterAxis start end 
+      | start <= end = [start..end]
+      | otherwise = reverse [end..start]
+
+diagSegment :: Segment -> Bool
+diagSegment ((x1,y1),(x2,y2)) = abs (x1 - x2) == abs (y1 - y2)
 
 horizOrVertSegment :: Segment -> Bool
 horizOrVertSegment ((x1,y1),(x2,y2)) = x1 == x2 || y1 == y2
