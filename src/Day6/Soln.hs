@@ -30,6 +30,42 @@ inputFile :: FilePath
 inputFile = "src/Day6/full-input.txt"
 
 
+{-
+[General Solution]
+
+We can observe that for a fish with 0 days left to produce children
+the number of its ancestors after the given days have elapsed is 
+
+  ancestors0 days = 
+    if days > 0 
+      then 1 + ancestors0 (days - 7) + ancestors0 (days - 9)
+      else 0
+
+And for a fish with N days left to produce children, it's then
+
+  ancestorsN n days = 1 + ancestors0 (days - n)
+                      ^   ^- the ancestors it will produce
+                      |
+                      the initial fish
+
+We can then apply 'ancestorsN' to 
+each fish's given initial days to the first child (arg 'n')
+the chosen total days (arg 'days') 
+then sum the totals, 
+and the result is the total number of fish.
+
+[Part 1]
+
+Apply the general solution for 80 'days'
+
+
+[Part 2]
+
+Apply the general solution for 256 'days',
+but in Haskell implementation had to be memoized on 'days'
+for reasonable evaluation time.
+-}
+
 soln :: IO ()
 soln = 
   do content <- TIO.readFile inputFile
