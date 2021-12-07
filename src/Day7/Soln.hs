@@ -25,7 +25,7 @@ soln :: IO ()
 soln = 
   do crabLocs <- readCrabLocs <$> TIO.readFile inputFile
      let rng = range crabLocs
-         dists = map (rangeToDist rng) crabLocs
+         dists = map (rangeToCumDist rng) crabLocs
 
          tot_dist = foldl1' (zipWith (+)) dists
 
@@ -38,6 +38,14 @@ soln =
 
 rangeToDist :: [Int] -> Int -> [Int]
 rangeToDist range pivot = map (\i -> abs (i - pivot)) range
+
+
+rangeToCumDist :: [Int] -> Int -> [Int]
+rangeToCumDist range pivot = map (\i -> fuelSpent (abs (i - pivot))) range
+  where 
+    -- fuelSpent = summation of [1..n]
+    fuelSpent :: Int -> Int
+    fuelSpent dist = (dist * (dist + 1)) `div` 2
 
 
 range :: [Int] -> [Int]
