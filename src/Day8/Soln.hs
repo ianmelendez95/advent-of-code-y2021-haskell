@@ -49,8 +49,6 @@ soln =
     --  putStrLn $ "Short Result: " ++ show (sum (map entryToValue (tail all_wires)))
     --  mapM_ (print . entryToValue) all_wires
      putStrLn $ "Full Result: " ++ show (sum (map entryToValue all_wires))
-     
-
   where 
     entryToValue :: ([Wires], [Wires]) -> Int
     entryToValue entry = 
