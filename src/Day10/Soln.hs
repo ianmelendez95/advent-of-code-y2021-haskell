@@ -45,29 +45,42 @@ inputFile = "src/Day10/full-input.txt"
 soln :: IO ()
 soln = 
   do parts <- parseInput <$> TIO.readFile inputFile
-     let m_ill_chars = map findIllegalChar parts
-         ill_points = map (maybe 0 illegalPoints) m_ill_chars
+     let m_inc_chars = map findIncompleteChars parts
+         inc_points = map incompletePoints $ catMaybes m_inc_chars
 
     --  mapM_ print parts
-     mapM_ (print . findIllegalChar) parts
-     putStrLn $ "Points: " ++ show (sum ill_points)
+     mapM_ print m_inc_chars
+     putStrLn $ "Points: " ++ show (median inc_points)
 
+median :: [Int] -> Int
+median xs = sort xs !! (length xs `div` 2)
 
-findIllegalChar :: [CPart] -> Maybe CChar
-findIllegalChar parts = 
+findIncompleteChars :: [CPart] -> Maybe [CChar]
+findIncompleteChars parts = 
   case go [] parts of 
-    Left c -> Just c
-    Right _ -> Nothing
+    Left _ -> Nothing
+    Right cs -> Just cs
   where 
-    go :: [CChar] -> [CPart] -> Either CChar [CPart]
+    go :: [CChar] -> [CPart] -> Either CChar [CChar]
     go [] [] = Right []
-    go stack [] = Right []
+    go stack [] = Right stack
     go stack (Push c : parts) = go (c : stack) parts
     go (sc : stack) (Pop c : parts) 
       | c /= sc = Left c
       | otherwise = go stack parts
     go [] ps@(Pop c : parts) = error $ "Can't pop empty stack: " ++ show ps
 
+
+incompletePoints :: [CChar] -> Int
+incompletePoints = go 0 . map charIncompletePoints
+  where 
+    go = foldl (\ps p -> (5 * ps) + p)
+
+charIncompletePoints :: CChar -> Int
+charIncompletePoints Paren = 1
+charIncompletePoints Brack = 2
+charIncompletePoints Curly = 3
+charIncompletePoints Angle = 4
 
 illegalPoints :: CChar -> Int
 illegalPoints Paren = 3
