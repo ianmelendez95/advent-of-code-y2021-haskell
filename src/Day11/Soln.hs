@@ -41,23 +41,30 @@ inputFile = "src/Day11/full-input.txt"
 soln :: IO ()
 soln = 
   do dumbos <- parseInput <$> TIO.readFile inputFile
-     let dumbo_gens = iterate iterDumbos dumbos
+     let dumbo_gens = iterate iterDumboGen (0, dumbos)
          idx_gens = zip [0..] dumbo_gens
     
-    --  mapM_ printGen (take 4 idx_gens)
+     mapM_ printGen (take 4 idx_gens)
+     putStrLn "\n...\n"
      printGen (idx_gens !! 100)
   where 
-    printGen :: (Int, Dumbos) -> IO ()
-    printGen (i, ds) = 
+    printGen :: (Int, (Int, Dumbos)) -> IO ()
+    printGen (i, (fs, ds)) = 
       do putStrLn ""
          putStrLn $ "[Gen " ++ show i ++ "]"
+         putStrLn $ "Flashes: " ++ show fs
          printDumbos ds
 
 
 --------------------------------------------------------------------------------
 -- Dumbos State
 
-iterDumbos :: Dumbos -> Dumbos
+iterDumboGen :: (Int, Dumbos) -> (Int, Dumbos)
+iterDumboGen (fs, ds) = 
+  let (fs', ds') = iterDumbos ds
+   in (fs + fs', ds')
+
+iterDumbos :: Dumbos -> (Int, Dumbos)
 iterDumbos dumbos =
   let base_growth = iterBaseGrowth dumbos
    in resetFlashed $ execState (mapM_ (iterFlashes . fst) (Map.toList base_growth)) base_growth 
@@ -82,8 +89,10 @@ incrPoint :: Point -> DumboS ()
 incrPoint point = modify (Map.adjust (\l -> if l < 0 then l else l + 1) point) 
 
 
-resetFlashed :: Dumbos -> Dumbos
-resetFlashed = Map.map (max 0)
+resetFlashed :: Dumbos -> (Int, Dumbos)
+resetFlashed dumbos = 
+  let flash_count = length $ filter (<0) (map snd (Map.toList dumbos))
+   in (flash_count, Map.map (max 0) dumbos)
 
 iterBaseGrowth :: Dumbos -> Dumbos
 iterBaseGrowth = Map.map (+1)
