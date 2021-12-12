@@ -32,7 +32,7 @@ type Graph = Map String [String]
 
 
 inputFile :: FilePath
-inputFile = "src/Day12/short-input.txt"
+inputFile = "src/Day12/full-input.txt"
 
 
 soln :: IO ()
