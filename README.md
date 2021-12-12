@@ -6,7 +6,7 @@ e.g. The solution for day 3 will be in `src/Day3/Soln.hs`.
 Solutions are evaluated by running the `soln` function in any given `Soln.hs` module.
 
     bash> stack ghci
-    bash> ghci> Day3.Soln.soln
+    ghci> Day3.Soln.soln
     ...
     903810
   
