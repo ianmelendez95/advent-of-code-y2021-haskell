@@ -73,10 +73,7 @@ pathsM cur_cave =
      pure $ map ([cur_cave] ++) rest_paths
 
 travWithCurCtx :: TravS [Path] -> TravS [Path]
-travWithCurCtx trav = 
-  do cur_state <- get
-     let result = evalState trav cur_state
-     pure result
+travWithCurCtx trav = evalState trav <$> get
 
 travGetNextCaves :: String -> TravS [String]
 travGetNextCaves cur_cave = 
