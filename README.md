@@ -5,10 +5,10 @@ e.g. The solution for day 3 will be in `src/Day3/Soln.hs`.
 
 Solutions are evaluated by running the `soln` function in any given `Soln.hs` module.
 
-  $ stack ghci
-  $ > Day3.Soln.soln
-  ...
-  903810
+    bash> stack ghci
+    bash> ghci> Day3.Soln.soln
+    ...
+    903810
   
 In many cases solutions for part 1 are destroyed in the process of 
 implementing solutions for part 2. In most (if not all) cases, the 
