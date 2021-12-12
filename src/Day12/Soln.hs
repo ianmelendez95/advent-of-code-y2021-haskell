@@ -42,7 +42,7 @@ data TravCtx = TravCtx {
 
 
 inputFile :: FilePath
-inputFile = "src/Day12/short-input.txt"
+inputFile = "src/Day12/full-input.txt"
 
 soln :: IO ()
 soln = 
@@ -50,7 +50,7 @@ soln =
      let all_paths = paths cave_graph
      putStrLn "[Paths]"
      putStrLn $ "Count: " ++ show (length all_paths)
-     mapM_ print all_paths
+    --  mapM_ print all_paths
 
 initTravCtx :: Graph -> TravCtx
 initTravCtx cave_graph = 
@@ -100,7 +100,9 @@ travExitCave cave
                  if not have_visited 
                    then pure ()
                    else do travMarkSkipped
-                           travDeleteCave cave
+                           -- all visited small caves now 'collapse'
+                           all_visited <- Set.toList <$> gets tCtxVisited
+                           mapM_ travDeleteCave all_visited
 
 travDeleteCave :: String -> TravS ()
 travDeleteCave cave = 
