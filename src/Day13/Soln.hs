@@ -35,17 +35,64 @@ data Fold = FoldX Int
 
 
 inputFile :: FilePath
-inputFile = "src/Day13/short-input.txt"
+inputFile = "src/Day13/full-input.txt"
 
 soln :: IO ()
 soln = 
   do (points, folds) <- parseInput <$> TIO.readFile inputFile
 
-     putStrLn "[Points]"
-     mapM_ print points
+     let point_set = Set.fromList points
+         folded_points = tail $ scanl' (flip foldPoints) point_set folds
+         folds_with_points = zip folds (tail folded_points)
 
-     putStrLn "\n[Folds]"
-     mapM_ print folds
+    --  putStrLn "[Points]"
+    --  mapM_ print points
+    --  putStrLn $ "Point Set Count: " ++ show (Set.size point_set)
+    --  printPoints point_set
+
+    --  putStrLn "\n[Folds]"
+    --  mapM_ print folds
+
+    --  mapM_ printFoldResult (take 1 folds_with_points)
+    --  putStrLn $ "First Fold Count: " ++ show (Set.size (head folded_points))
+     printFoldResult (last folds_with_points)
+  where 
+    printFoldResult :: (Fold, Set Point) -> IO ()
+    printFoldResult (fold, points)= 
+      do putStrLn $ "\n[" ++ show fold ++ "]"
+         putStrLn $ "Point Count: " ++ show (Set.size points)
+         printPoints points
+
+
+foldPoints :: Fold -> Set Point -> Set Point
+foldPoints fold = Set.map (foldPoint fold)
+
+
+foldPoint :: Fold -> Point -> Point
+foldPoint (FoldX fx) p@(x,y) 
+  | x <= fx = p
+  | otherwise = (fx - (x - fx), y)
+foldPoint (FoldY fy) p@(x,y) 
+  | y <= fy = p
+  | otherwise = (x, fy - (y - fy))
+
+
+printPoints :: Set Point -> IO ()
+printPoints point_set = 
+  let x_bound = maximum (map fst (Set.toList point_set))
+      y_bound = maximum (map snd (Set.toList point_set))
+   in mapM_ (printLine x_bound) [0..y_bound]
+  where 
+    printLine :: Int -> Int -> IO ()
+    printLine x_bound y = 
+      do mapM_ (`printPoint` y) [0..x_bound]
+         putStrLn ""
+
+    printPoint :: Int -> Int -> IO ()
+    printPoint x y = 
+      if Set.member (x,y) point_set 
+        then putStr "#"
+        else putStr " "
 
 
 parseInput :: T.Text -> ([Point], [Fold])
