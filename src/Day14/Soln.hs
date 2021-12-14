@@ -32,7 +32,7 @@ type Insertions = Map String String
 
 
 inputFile :: FilePath
-inputFile = "src/Day14/short-input.txt"
+inputFile = "src/Day14/full-input.txt"
 
 
 soln :: IO ()
@@ -42,18 +42,23 @@ soln =
      let insertion_map = Map.fromList insertion_rules
          gens = iterate (iterInsertions insertion_map) template
          idx_gens = zip [0..] gens
+         gen_10 = idx_gens !! 10
+         gen_10_char_count = charCounts (snd gen_10)
+
+         gen_10_max_count = maximum (map snd (Map.toList gen_10_char_count))
+         gen_10_min_count = minimum (map snd (Map.toList gen_10_char_count))
      
     --  print template
     --  putStrLn "\n[Insertions]"
     --  mapM_ print insertion_rules
-     mapM_ printIdxGen (take 5 idx_gens)
-    --  printIdxGen (idx_gens !! 10)
+    --  mapM_ printIdxGen (take 5 idx_gens)
+    --  print (idx_gens !! 10)
+     print (gen_10_max_count - gen_10_min_count)
   where 
     printIdxGen :: (Int, String) -> IO ()
     printIdxGen (idx, poly) = 
       do putStrLn $ "Gen " ++ show idx ++ ":"
          putStrLn poly
-
 
 
 iterInsertions :: Insertions -> String -> String 
@@ -63,6 +68,10 @@ iterInsertions inserts (c1:rest@(c2:cs)) =
   case Map.lookup [c1,c2] inserts of 
     Nothing     -> c1 : iterInsertions inserts rest
     Just insert -> [c1] ++ insert ++ iterInsertions inserts rest
+
+
+charCounts :: String -> Map Char Int
+charCounts chars = Map.fromListWith (+) (zip chars (repeat 1))
 
 
 parseInput :: T.Text -> (String, [(String, String)])
