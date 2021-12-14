@@ -28,6 +28,9 @@ import Control.Monad.State.Lazy
 import Debug.Trace
 
 
+type Insertions = Map String String
+
+
 inputFile :: FilePath
 inputFile = "src/Day14/short-input.txt"
 
@@ -35,10 +38,31 @@ inputFile = "src/Day14/short-input.txt"
 soln :: IO ()
 soln = 
   do (template, insertion_rules) <- parseInput <$> TIO.readFile inputFile
+
+     let insertion_map = Map.fromList insertion_rules
+         gens = iterate (iterInsertions insertion_map) template
+         idx_gens = zip [0..] gens
      
-     print template
-     putStrLn "\n[Insertions]"
-     mapM_ print insertion_rules
+    --  print template
+    --  putStrLn "\n[Insertions]"
+    --  mapM_ print insertion_rules
+     mapM_ printIdxGen (take 5 idx_gens)
+    --  printIdxGen (idx_gens !! 10)
+  where 
+    printIdxGen :: (Int, String) -> IO ()
+    printIdxGen (idx, poly) = 
+      do putStrLn $ "Gen " ++ show idx ++ ":"
+         putStrLn poly
+
+
+
+iterInsertions :: Insertions -> String -> String 
+iterInsertions _ [] = []
+iterInsertions _ [c] = [c]
+iterInsertions inserts (c1:rest@(c2:cs)) = 
+  case Map.lookup [c1,c2] inserts of 
+    Nothing     -> c1 : iterInsertions inserts rest
+    Just insert -> [c1] ++ insert ++ iterInsertions inserts rest
 
 
 parseInput :: T.Text -> (String, [(String, String)])
