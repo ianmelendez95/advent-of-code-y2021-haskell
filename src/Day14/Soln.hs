@@ -32,7 +32,7 @@ type Insertions = Map String String
 
 
 inputFile :: FilePath
-inputFile = "src/Day14/full-input.txt"
+inputFile = "src/Day14/short-input.txt"
 
 
 soln :: IO ()
@@ -40,34 +40,48 @@ soln =
   do (template, insertion_rules) <- parseInput <$> TIO.readFile inputFile
 
      let insertion_map = Map.fromList insertion_rules
-         gens = iterate (iterInsertions insertion_map) template
+         gens = iterate iterInsertions insertion_map
          idx_gens = zip [0..] gens
          gen_10 = idx_gens !! 10
-         gen_10_char_count = charCounts (snd gen_10)
+        --  gen_10_char_count = charCounts (snd gen_10)
 
-         gen_10_max_count = maximum (map snd (Map.toList gen_10_char_count))
-         gen_10_min_count = minimum (map snd (Map.toList gen_10_char_count))
+        --  gen_10_max_count = maximum (map snd (Map.toList gen_10_char_count))
+        --  gen_10_min_count = minimum (map snd (Map.toList gen_10_char_count))
      
-    --  print template
-    --  putStrLn "\n[Insertions]"
+     print template
+     putStrLn "\n[Insertions]"
     --  mapM_ print insertion_rules
+
+     mapM_ printInsertionGen (take 3 idx_gens)
     --  mapM_ printIdxGen (take 5 idx_gens)
     --  print (idx_gens !! 10)
-     print (gen_10_max_count - gen_10_min_count)
+    --  print (gen_10_max_count - gen_10_min_count)
   where 
     printIdxGen :: (Int, String) -> IO ()
     printIdxGen (idx, poly) = 
       do putStrLn $ "Gen " ++ show idx ++ ":"
          putStrLn poly
 
+    printInsertionGen :: (Int, Insertions) -> IO ()
+    printInsertionGen (gen, inserts) = 
+      do putStrLn $ "[Inserts " ++ show gen ++ "]"
+         mapM_ (\e -> putStrLn $ fst e ++ ": " ++ snd e) . Map.toList $ inserts
+         
+iterInsertions :: Insertions -> Insertions 
+iterInsertions inserts = Map.mapWithKey iterInsertions inserts
+  where 
+    iterInsertions :: String -> String -> String
+    iterInsertions [beg, end] middle = 
+      tail $ resolveInsertions inserts ([beg] ++ middle ++ [end])
+    iterInsertions _ _ = undefined
 
-iterInsertions :: Insertions -> String -> String 
-iterInsertions _ [] = []
-iterInsertions _ [c] = [c]
-iterInsertions inserts (c1:rest@(c2:cs)) = 
+resolveInsertions :: Insertions -> String -> String 
+resolveInsertions _ [] = []
+resolveInsertions _ [_] = [] -- drop the last one
+resolveInsertions inserts (c1:rest@(c2:cs)) = 
   case Map.lookup [c1,c2] inserts of 
-    Nothing     -> c1 : iterInsertions inserts rest
-    Just insert -> [c1] ++ insert ++ iterInsertions inserts rest
+    Nothing     -> c1 : resolveInsertions inserts rest
+    Just insert -> [c1] ++ insert ++ resolveInsertions inserts rest
 
 
 charCounts :: String -> Map Char Int
