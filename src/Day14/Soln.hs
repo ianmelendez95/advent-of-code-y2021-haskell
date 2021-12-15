@@ -35,6 +35,14 @@ inputFile :: FilePath
 inputFile = "src/Day14/short-input.txt"
 
 
+-- | iter => gen
+-- | 0 => 0
+-- | 1 => 2
+-- | 2 => 4
+-- | 3 => 8
+-- | 4 => 16
+-- | 5 => 32
+-- | 6 => 64
 soln :: IO ()
 soln = 
   do (template, insertion_rules) <- parseInput <$> TIO.readFile inputFile
@@ -42,20 +50,21 @@ soln =
      let insertion_map = Map.fromList insertion_rules
          gens = iterate iterInsertions insertion_map
          idx_gens = zip [0..] gens
-         gen_10 = idx_gens !! 10
-        --  gen_10_char_count = charCounts (snd gen_10)
+         gen_10 = applyInsertions (gens !! 1) (applyInsertions (gens !! 3) template)
 
-        --  gen_10_max_count = maximum (map snd (Map.toList gen_10_char_count))
-        --  gen_10_min_count = minimum (map snd (Map.toList gen_10_char_count))
+         gen_10_char_count = charCounts gen_10
+         gen_10_max_count = maximum (map snd (Map.toList gen_10_char_count))
+         gen_10_min_count = minimum (map snd (Map.toList gen_10_char_count))
      
      print template
      putStrLn "\n[Insertions]"
     --  mapM_ print insertion_rules
 
-     mapM_ printInsertionGen (take 3 idx_gens)
+    --  mapM_ printInsertionGen (take 3 idx_gens)
+
     --  mapM_ printIdxGen (take 5 idx_gens)
     --  print (idx_gens !! 10)
-    --  print (gen_10_max_count - gen_10_min_count)
+     print (gen_10_max_count - gen_10_min_count)
   where 
     printIdxGen :: (Int, String) -> IO ()
     printIdxGen (idx, poly) = 
@@ -66,6 +75,18 @@ soln =
     printInsertionGen (gen, inserts) = 
       do putStrLn $ "[Inserts " ++ show gen ++ "]"
          mapM_ (\e -> putStrLn $ fst e ++ ": " ++ snd e) . Map.toList $ inserts
+    
+    iterToGen :: Int -> Int
+    iterToGen iter = 2 ^ iter
+
+
+applyInsertions :: Insertions -> String -> String 
+applyInsertions _ [] = []
+applyInsertions _ [c] = [c] -- keep the last one (we're applying, not finding out what the insertion is)
+applyInsertions inserts (c1:rest@(c2:cs)) = 
+  case Map.lookup [c1,c2] inserts of 
+    Nothing     -> c1 : applyInsertions inserts rest
+    Just insert -> [c1] ++ insert ++ applyInsertions inserts rest
          
 iterInsertions :: Insertions -> Insertions 
 iterInsertions inserts = Map.mapWithKey iterInsertions inserts
