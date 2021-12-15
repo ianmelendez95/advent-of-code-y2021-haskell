@@ -34,8 +34,13 @@ type PointMap a = Map Point a
 
 type Path = (Point, Set Point)
 type PointCosts  = Map Point Int
+type PathCosts   = Map Point Int
 type PointPriors = IntMap [Path]
 
+type PointDeque = [Point]
+
+queuePoints :: [Point] -> PointDeque -> PointDeque
+queuePoints = flip (++)
 
 inputFile = "src/Day15/full-input.txt"
 
@@ -46,21 +51,28 @@ soln =
     --  printPointMap point_costs
     --  putStrLn $ show (Map.findMax point_costs)
 
-     let point_priors :: PointPriors
-         point_priors = IntMap.singleton 0 [(fst (Map.findMin point_costs), Set.empty)]
-
+     let path_costs = bfsPathCosts [(0,0)] point_costs (Map.singleton (0,0) 0)
          end_point = fst (Map.findMax point_costs)
 
-         prior_iters = iterate (iterPriorQueue point_costs) point_priors
-         idx_prior_iters = zip [0..] prior_iters 
+    --  printPointMap path_costs
+     print (Map.lookup end_point path_costs)
+     
 
-         shortest_path = head $ mapMaybe (shortestInPriors end_point) prior_iters
-         shortest_path_cost = fst shortest_path
+    --  let point_priors :: PointPriors
+    --      point_priors = IntMap.singleton 0 [(fst (Map.findMin point_costs), Set.empty)]
+
+        --  end_point = fst (Map.findMax point_costs)
+
+        --  prior_iters = iterate (iterPriorQueue point_costs) point_priors
+        --  idx_prior_iters = zip [0..] prior_iters 
+
+        --  shortest_path = head $ mapMaybe (shortestInPriors end_point) prior_iters
+        --  shortest_path_cost = fst shortest_path
 
     --  mapM_ printPriors (take 10 prior_iters)
     --  printPriors (idx_prior_iters !! 20)
     --  print shortest_path
-     putStrLn $ "Shortest Cost: " ++ show shortest_path_cost
+    --  putStrLn $ "Shortest Cost: " ++ show shortest_path_cost
 
     --  let all_paths = findPaths (Map.keysSet point_map) (fst (Map.findMin point_map)) (fst (Map.findMax point_map))
 
@@ -82,6 +94,35 @@ soln =
     printPath (cur_point, points_tail) = 
       do putStr $ "  " ++ show cur_point ++ " - "
          putStrLn $ intercalate "," (map show (Set.toList points_tail))
+
+
+bfsPathCosts :: [Point] -> PointCosts -> PathCosts -> PathCosts
+bfsPathCosts [] _ path_cs = path_cs
+bfsPathCosts (p:ps) point_cs path_cs = 
+  let adj_point_path_updates = 
+        mapMaybe adjacentPathCostUpdate (adjacentPoints p)
+   in bfsPathCosts (ps ++ map fst adj_point_path_updates)
+                   point_cs 
+                   (foldl' (flip (uncurry Map.insert)) path_cs adj_point_path_updates)
+  where 
+    cur_path_cost :: Int
+    cur_path_cost = 
+      case path_cs Map.!? p of 
+        Nothing -> error $ "No path cost for current point: " ++ show p
+        Just c -> c
+
+    adjacentPathCostUpdate :: Point -> Maybe (Point, Int)
+    adjacentPathCostUpdate adj_p = 
+      case Map.lookup adj_p point_cs of
+        Nothing -> Nothing
+        Just adj_point_cost -> 
+          let cur_adj_path_cost = cur_path_cost + adj_point_cost
+          in case Map.lookup adj_p path_cs of 
+                Nothing -> Just (adj_p, cur_adj_path_cost)
+                Just existing_adj_path_cost -> 
+                  if cur_adj_path_cost < existing_adj_path_cost 
+                    then Just (adj_p, cur_adj_path_cost)
+                    else Nothing
 
 
 shortestInPriors :: Point -> PointPriors -> Maybe (Int, Path)
@@ -149,10 +190,15 @@ printPointMap levels = printEntries (Map.toList levels)
   where 
     printEntries :: [(Point, Int)] -> IO ()
     printEntries [] = pure () 
-    printEntries [(_,l)] = print l
+    printEntries [(_,l)] = putStrLn (showCell l)
     printEntries (((m,n),l):rest@(((m',_),_):_))
-      | m' > m = print l >> printEntries rest
-      | otherwise = putStr (show l) >> printEntries rest
+      | m' > m = putStrLn (showCell l) >> printEntries rest
+      | otherwise = putStr (showCell l) >> printEntries rest
+    
+    showCell :: Int -> String
+    showCell n = 
+      let n_str = show n
+       in replicate (10 - length n_str) ' ' ++ n_str
 
 parseInput :: T.Text -> PointMap Int
 parseInput input = Map.fromList . concat $ zipWith lineToPoints [0..] (T.lines input)
