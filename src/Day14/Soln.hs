@@ -34,7 +34,7 @@ type CharCount = Map Char Int
 
 
 inputFile :: FilePath
-inputFile = "src/Day14/short-input.txt"
+inputFile = "src/Day14/full-input.txt"
 
 
 -- | iter => gen
@@ -53,17 +53,20 @@ soln =
          template_count_map = templatePairCount template
 
          count_iters = iterate (iterPairCount insertion_map) template_count_map
-     
-     print template
+
+         char_count_40 = pairCountsToCharCounts template (count_iters !! 40)
+
+    --  print template
     --  putStrLn "\n[Insertions]"
     --  mapM_ print insertion_rules
 
     --  putStrLn "\n[Pair Counts]"
     --  mapM_ printEntry (Map.toList template_count_map)
-     mapM_ printPairCounts (take 4 $ zip [0..] count_iters)
+    --  mapM_ printPairCounts (take 4 $ zip [0..] count_iters)
 
-     printCharCounts (10, pairCountsToCharCounts (count_iters !! 10))
+    --  printCharCounts (40, pairCountsToCharCounts template (count_iters !! 40))
 
+     putStrLn $ "Answer: " ++ show (maxCount char_count_40 - minCount char_count_40)
   where 
     printIdxGen :: (Int, String) -> IO ()
     printIdxGen (idx, poly) = 
@@ -86,9 +89,18 @@ soln =
     printEntry :: (Show a, Show b) => (a, b) -> IO ()
     printEntry (k, v) = putStrLn $ show k ++ ": " ++ show v
 
-pairCountsToCharCounts :: PairCount -> CharCount
-pairCountsToCharCounts pair_counts = 
-  Map.fromListWith (+) (concatMap pairToCharCount (Map.toList pair_counts))
+maxCount :: Map a Int -> Int
+maxCount = maximum . map snd . Map.toList
+
+minCount :: Map a Int -> Int
+minCount = minimum . map snd . Map.toList
+
+pairCountsToCharCounts :: String -> PairCount -> CharCount
+pairCountsToCharCounts template pair_counts = 
+  let template_offsets = [(head template, 1), (last template, 1)]
+      pair_char_counts = concatMap pairToCharCount (Map.toList pair_counts)
+      dup_char_counts = Map.fromListWith (+) (template_offsets ++ pair_char_counts)
+   in Map.map (`div` 2) dup_char_counts
   where 
     pairToCharCount :: (String, Int) -> [(Char, Int)]
     pairToCharCount (pair, count) = zip pair (repeat count)
