@@ -1,4 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE TupleSections #-}
 
 module Day15.Soln where 
 
@@ -11,8 +12,8 @@ import Data.List
 import Data.Maybe (maybe, fromMaybe, listToMaybe, catMaybes, mapMaybe)
 import Data.Char
 
-import Data.Map.Strict (Map)
-import qualified Data.Map.Strict as Map
+import Data.Map.Lazy (Map)
+import qualified Data.Map.Lazy as Map
 
 import Data.IntMap (IntMap)
 import qualified Data.IntMap as IntMap
@@ -29,17 +30,101 @@ import Debug.Trace
 
 
 type Point = (Int, Int)
-type PointMap a = Map.Map Point a
+type PointMap a = Map Point a
 
+type Path = (Point, Set Point)
+type PointCosts  = Map Point Int
+type PointPriors = IntMap [Path]
 
 inputFile = "src/Day15/short-input.txt"
 
 
 soln :: IO ()
 soln = 
-  do point_map <- parseInput <$> TIO.readFile inputFile
-     printPointMap point_map
+  do point_costs <- parseInput <$> TIO.readFile inputFile
+    --  printPointMap point_costs
+    --  putStrLn $ show (Map.findMax point_costs)
+
+     let point_priors :: PointPriors
+         point_priors = IntMap.singleton 0 [(fst (Map.findMin point_costs), Set.empty)]
+
+         prior_iters = zip [0..] $ iterate (iterPriorQueue point_costs) point_priors
+
+    --  mapM_ printPriors (take 10 prior_iters)
+     printPriors (prior_iters !! 20)
+
+    --  let all_paths = findPaths (Map.keysSet point_map) (fst (Map.findMin point_map)) (fst (Map.findMax point_map))
+
+    --  mapM_ print (take 5 all_paths)
+    --  print (length all_paths)
+  where 
+    printPriors :: (Int, PointPriors) -> IO ()
+    printPriors (iter, priors) = 
+      do putStrLn $ "\n[[Gen " ++ show iter ++ "]]"
+         mapM_ printPriorEntry . IntMap.toList $ priors
+
+    printPriorEntry :: (Int, [Path]) -> IO ()
+    printPriorEntry (cost, paths) = 
+      do print cost
+         mapM_ printPath paths
+         
+    printPath :: Path -> IO ()
+    printPath (cur_point, points_tail) = 
+      do putStr $ "  " ++ show cur_point ++ " - "
+         putStrLn $ intercalate "," (map show (Set.toList points_tail))
+
+
+-- findBestPath :: PointMap Int -> Path
+-- findBestPath point_map = 
+--   let start_point = fst (Map.findMin point_map)
+--       end_point =   snd (Map.findMax point_map)
+--       init_prior = IntMap.singleton 0 [(start_point, Map.delete start_point point_map)]
+--    in _
+
+-- | resolve the next paths of the minimal path
+iterPriorQueue :: PointCosts -> PointPriors -> PointPriors
+iterPriorQueue costs priors =
+  let (min_cost, min_paths) = IntMap.findMin priors
+
+      priors' :: PointPriors
+      priors' = IntMap.delete min_cost priors
+      
+      next_paths :: [(Int, Path)]
+      next_paths = concatMap (adjPaths min_cost) min_paths
+
+   in foldl' (\ps (c, p) -> priorsInsertPath c p ps) priors' next_paths
+  where 
+    adjPaths :: Int -> Path -> [(Int, Path)]
+    adjPaths pc (p, ps) = 
+      let ps' :: Set Point
+          ps' = Set.insert p ps
+        
+          aps :: [Point]
+          aps = filter (\ap -> not (ap `Set.member` ps) && (ap `Map.member` costs)) 
+                       (adjacentPoints p)
+
+          aps_apcs :: [(Int, Point)]
+          aps_apcs = map (toFst ((+ pc) . (costs Map.!))) aps
+
+       in map ((,ps') <$>) aps_apcs
+
+priorsInsertPath :: Int -> Path -> PointPriors -> PointPriors
+priorsInsertPath c p = IntMap.insertWith (++) c [p]
     
+toFst :: (a -> b) -> a -> (b,a)
+toFst f x = (f x, x)
+
+toSnd :: (a -> b) -> a -> (a,b)
+toSnd f x = (x, f x)
+
+-- findPaths :: Set Point -> Point -> Point -> [Path]
+-- findPaths all_points start_point end_point 
+--   | start_point == end_point = [[end_point]]
+--   | otherwise = 
+--     let adj_points = filter (`Set.member` all_points) (adjacentPoints start_point)
+--         del_start = Set.delete start_point all_points
+--      in map (start_point :) $ concatMap (\ap -> findPaths del_start ap end_point) adj_points
+
 
 
 adjacentPoints :: Point -> [Point]
