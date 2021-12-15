@@ -36,7 +36,8 @@ type Path = (Point, Set Point)
 type PointCosts  = Map Point Int
 type PointPriors = IntMap [Path]
 
-inputFile = "src/Day15/short-input.txt"
+
+inputFile = "src/Day15/full-input.txt"
 
 
 soln :: IO ()
@@ -48,15 +49,24 @@ soln =
      let point_priors :: PointPriors
          point_priors = IntMap.singleton 0 [(fst (Map.findMin point_costs), Set.empty)]
 
-         prior_iters = zip [0..] $ iterate (iterPriorQueue point_costs) point_priors
+         end_point = fst (Map.findMax point_costs)
+
+         prior_iters = iterate (iterPriorQueue point_costs) point_priors
+         idx_prior_iters = zip [0..] prior_iters 
+
+         shortest_path = head $ mapMaybe (shortestInPriors end_point) prior_iters
+         shortest_path_cost = fst shortest_path
 
     --  mapM_ printPriors (take 10 prior_iters)
-     printPriors (prior_iters !! 20)
+    --  printPriors (idx_prior_iters !! 20)
+    --  print shortest_path
+     putStrLn $ "Shortest Cost: " ++ show shortest_path_cost
 
     --  let all_paths = findPaths (Map.keysSet point_map) (fst (Map.findMin point_map)) (fst (Map.findMax point_map))
 
     --  mapM_ print (take 5 all_paths)
     --  print (length all_paths)
+
   where 
     printPriors :: (Int, PointPriors) -> IO ()
     printPriors (iter, priors) = 
@@ -74,12 +84,11 @@ soln =
          putStrLn $ intercalate "," (map show (Set.toList points_tail))
 
 
--- findBestPath :: PointMap Int -> Path
--- findBestPath point_map = 
---   let start_point = fst (Map.findMin point_map)
---       end_point =   snd (Map.findMax point_map)
---       init_prior = IntMap.singleton 0 [(start_point, Map.delete start_point point_map)]
---    in _
+shortestInPriors :: Point -> PointPriors -> Maybe (Int, Path)
+shortestInPriors end_point priors = 
+  let (min_cost, min_paths) = IntMap.findMin priors
+      min_end_path = find ((== end_point) . fst) min_paths
+   in (min_cost,) <$> min_end_path
 
 -- | resolve the next paths of the minimal path
 iterPriorQueue :: PointCosts -> PointPriors -> PointPriors
