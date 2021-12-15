@@ -28,7 +28,9 @@ import Control.Monad.State.Lazy
 import Debug.Trace
 
 
-type Insertions = Map String String
+type Insertions = Map String [String]
+type PairCount = Map String Int
+type CharCount = Map Char Int
 
 
 inputFile :: FilePath
@@ -47,66 +49,80 @@ soln :: IO ()
 soln = 
   do (template, insertion_rules) <- parseInput <$> TIO.readFile inputFile
 
-     let insertion_map = Map.fromList insertion_rules
-         gens = iterate iterInsertions insertion_map
-         idx_gens = zip [0..] gens
-         gen_10 = applyInsertions (gens !! 1) (applyInsertions (gens !! 3) template)
+     let insertion_map = insertionsFromRules insertion_rules
+         template_count_map = templatePairCount template
 
-         gen_10_char_count = charCounts gen_10
-         gen_10_max_count = maximum (map snd (Map.toList gen_10_char_count))
-         gen_10_min_count = minimum (map snd (Map.toList gen_10_char_count))
+         count_iters = iterate (iterPairCount insertion_map) template_count_map
      
      print template
-     putStrLn "\n[Insertions]"
+    --  putStrLn "\n[Insertions]"
     --  mapM_ print insertion_rules
 
-    --  mapM_ printInsertionGen (take 3 idx_gens)
+    --  putStrLn "\n[Pair Counts]"
+    --  mapM_ printEntry (Map.toList template_count_map)
+     mapM_ printPairCounts (take 4 $ zip [0..] count_iters)
 
-    --  mapM_ printIdxGen (take 5 idx_gens)
-    --  print (idx_gens !! 10)
-     print (gen_10_max_count - gen_10_min_count)
+     printCharCounts (10, pairCountsToCharCounts (count_iters !! 10))
+
   where 
     printIdxGen :: (Int, String) -> IO ()
     printIdxGen (idx, poly) = 
       do putStrLn $ "Gen " ++ show idx ++ ":"
          putStrLn poly
 
-    printInsertionGen :: (Int, Insertions) -> IO ()
-    printInsertionGen (gen, inserts) = 
-      do putStrLn $ "[Inserts " ++ show gen ++ "]"
-         mapM_ (\e -> putStrLn $ fst e ++ ": " ++ snd e) . Map.toList $ inserts
+    printPairCounts :: (Int, PairCount) -> IO ()
+    printPairCounts (gen, counts) = 
+      do putStrLn $ "[Counts " ++ show gen ++ "]"
+         mapM_ (\e -> putStrLn $ fst e ++ ": " ++ show (snd e)) . Map.toList $ counts
+
+    printCharCounts :: (Int, CharCount) -> IO ()
+    printCharCounts (gen, counts) = 
+      do putStrLn $ "[Counts " ++ show gen ++ "]"
+         mapM_ (\e -> putStrLn $ [fst e] ++ ": " ++ show (snd e)) . Map.toList $ counts
     
     iterToGen :: Int -> Int
     iterToGen iter = 2 ^ iter
 
+    printEntry :: (Show a, Show b) => (a, b) -> IO ()
+    printEntry (k, v) = putStrLn $ show k ++ ": " ++ show v
 
-applyInsertions :: Insertions -> String -> String 
-applyInsertions _ [] = []
-applyInsertions _ [c] = [c] -- keep the last one (we're applying, not finding out what the insertion is)
-applyInsertions inserts (c1:rest@(c2:cs)) = 
-  case Map.lookup [c1,c2] inserts of 
-    Nothing     -> c1 : applyInsertions inserts rest
-    Just insert -> [c1] ++ insert ++ applyInsertions inserts rest
-         
-iterInsertions :: Insertions -> Insertions 
-iterInsertions inserts = Map.mapWithKey iterInsertions inserts
+pairCountsToCharCounts :: PairCount -> CharCount
+pairCountsToCharCounts pair_counts = 
+  Map.fromListWith (+) (concatMap pairToCharCount (Map.toList pair_counts))
   where 
-    iterInsertions :: String -> String -> String
-    iterInsertions [beg, end] middle = 
-      tail $ resolveInsertions inserts ([beg] ++ middle ++ [end])
-    iterInsertions _ _ = undefined
+    pairToCharCount :: (String, Int) -> [(Char, Int)]
+    pairToCharCount (pair, count) = zip pair (repeat count)
 
-resolveInsertions :: Insertions -> String -> String 
-resolveInsertions _ [] = []
-resolveInsertions _ [_] = [] -- drop the last one
-resolveInsertions inserts (c1:rest@(c2:cs)) = 
-  case Map.lookup [c1,c2] inserts of 
-    Nothing     -> c1 : resolveInsertions inserts rest
-    Just insert -> [c1] ++ insert ++ resolveInsertions inserts rest
+iterPairCount :: Insertions -> PairCount -> PairCount
+iterPairCount inserts count_map = 
+  Map.fromListWith (+) (concatMap iterCountEntry (Map.toList count_map))
+  where 
+    iterCountEntry :: (String, Int) -> [(String, Int)]
+    iterCountEntry (pair, num) = 
+      case Map.lookup pair inserts of 
+        Nothing -> error $ "No inserts for pair: " ++ pair
+        Just ins -> zip ins (repeat num)
+
+templatePairCount :: String -> PairCount
+templatePairCount = Map.fromListWith (+) . flip zip (repeat 1) . pairs
+
+insertionsFromRules :: [(String, String)] -> Insertions
+insertionsFromRules = Map.fromList . map fromRule
+  where 
+    fromRule :: (String, String) -> (String, [String])
+    fromRule (from, to) = 
+      let [c1, c3] = from
+          [c2] = to
+       in (from, [[c1,c2], [c2,c3]])
+
+pairs :: String -> [String]
+pairs [] = []
+pairs [_] = []
+pairs (x:rest@(y:ys)) = [x,y] : pairs rest
 
 
-charCounts :: String -> Map Char Int
-charCounts chars = Map.fromListWith (+) (zip chars (repeat 1))
+-- charCounts :: String -> Map Char Int
+-- charCounts chars = Map.fromListWith (+) (zip chars (repeat 1))
 
 
 parseInput :: T.Text -> (String, [(String, String)])
