@@ -43,6 +43,7 @@ queuePoints :: [Point] -> PointDeque -> PointDeque
 queuePoints = flip (++)
 
 inputFile = "src/Day15/full-input.txt"
+inputDim = 100
 
 
 soln :: IO ()
@@ -52,10 +53,11 @@ soln =
     --  putStrLn $ show (Map.findMax point_costs)
 
      let path_costs = bfsPathCosts (IntMap.singleton 0 (Set.singleton (0,0))) point_costs (Map.singleton (0,0) 0)
-         end_point = fst (Map.findMax point_costs)
+         (end_point, end_path_cost) = Map.findMax path_costs
 
     --  printPointMap path_costs
-     print (Map.lookup end_point path_costs)
+     print end_point
+     print end_path_cost
      
 
     --  let point_priors :: PointPriors
@@ -97,7 +99,7 @@ soln =
 
 
 bfsPathCosts :: IntMap (Set Point) -> PointCosts -> PathCosts -> PathCosts
-bfsPathCosts point_queue point_cs path_cs = 
+bfsPathCosts point_queue base_point_cs path_cs = 
   case IntMap.lookupMin point_queue of 
     Nothing -> path_cs
     Just (cur_path_cost, ps) ->
@@ -105,12 +107,27 @@ bfsPathCosts point_queue point_cs path_cs =
           adj_point_path_updates = 
             mapMaybe (adjacentPathCostUpdate cur_path_cost) (concatMap adjacentPoints ps)
        in bfsPathCosts (foldl' (\cs (p, c) -> IntMap.insertWith Set.union c (Set.singleton p) cs) (IntMap.delete cur_path_cost point_queue) adj_point_path_updates)
-                       point_cs 
+                       base_point_cs 
                        (foldl' (flip (uncurry Map.insert)) path_cs adj_point_path_updates)
   where 
+    mPointCost :: Point -> Maybe Int
+    mPointCost point@(x,y) =
+      if pointInBounds point
+        then let base_point = (x `mod` inputDim, y `mod` inputDim)
+                 tile_tax = x `div` inputDim + y `div` inputDim
+
+                 raw_cost = tile_tax + (base_point_cs Map.! base_point)
+              in if raw_cost <= 9
+                   then Just raw_cost
+                   else Just $ ((raw_cost - 10) `mod` 9) + 1
+        else Nothing
+    
+    pointInBounds :: Point -> Bool
+    pointInBounds (x,y) = x >= 0 && y >= 0 && x < 5 * inputDim && y < 5 * inputDim
+
     adjacentPathCostUpdate :: Int -> Point -> Maybe (Point, Int)
     adjacentPathCostUpdate cur_path_cost adj_p = 
-      case Map.lookup adj_p point_cs of
+      case mPointCost adj_p of
         Nothing -> Nothing
         Just adj_point_cost -> 
           let cur_adj_path_cost = cur_path_cost + adj_point_cost
