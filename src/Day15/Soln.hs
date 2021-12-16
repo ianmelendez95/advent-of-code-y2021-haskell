@@ -43,7 +43,7 @@ queuePoints :: [Point] -> PointDeque -> PointDeque
 queuePoints = flip (++)
 
 inputFile = "src/Day15/full-input.txt"
-inputDim = 100
+
 
 soln :: IO ()
 soln = 
@@ -98,41 +98,26 @@ soln =
 
 bfsPathCosts :: [Point] -> PointCosts -> PathCosts -> PathCosts
 bfsPathCosts [] _ path_cs = path_cs
-bfsPathCosts (p:ps) base_point_cs path_cs = 
+bfsPathCosts (p:ps) point_cs path_cs = 
   let adj_point_path_updates = 
         mapMaybe adjacentPathCostUpdate (adjacentPoints p)
    in bfsPathCosts (ps ++ map fst adj_point_path_updates)
-                   base_point_cs 
-                   (foldl' (\cs (p, c) -> Map.insert p c cs) path_cs adj_point_path_updates)
+                   point_cs 
+                   (foldl' (flip (uncurry Map.insert)) path_cs adj_point_path_updates)
   where 
     cur_path_cost :: Int
     cur_path_cost = 
       case path_cs Map.!? p of 
         Nothing -> error $ "No path cost for current point: " ++ show p
         Just c -> c
-    
-    mPointCost :: Point -> Maybe Int
-    mPointCost point@(x,y) =
-      if pointInBounds point
-        then let base_point = (x `mod` inputDim, y `mod` inputDim)
-                 tile_tax = x `div` inputDim + y `div` inputDim
-
-                 raw_cost = tile_tax + (base_point_cs Map.! base_point)
-              in if raw_cost <= 9
-                   then Just raw_cost
-                   else Just $ ((raw_cost - 10) `mod` 9) + 1
-        else Nothing
-    
-    pointInBounds :: Point -> Bool
-    pointInBounds (x,y) = x >= 0 && y >= 0 && x < 5 * inputDim && y < 5 * inputDim
 
     adjacentPathCostUpdate :: Point -> Maybe (Point, Int)
     adjacentPathCostUpdate adj_p = 
-      case mPointCost adj_p of
+      case Map.lookup adj_p point_cs of
         Nothing -> Nothing
         Just adj_point_cost -> 
           let cur_adj_path_cost = cur_path_cost + adj_point_cost
-          in  case Map.lookup adj_p path_cs of 
+          in case Map.lookup adj_p path_cs of 
                 Nothing -> Just (adj_p, cur_adj_path_cost)
                 Just existing_adj_path_cost -> 
                   if cur_adj_path_cost < existing_adj_path_cost 
