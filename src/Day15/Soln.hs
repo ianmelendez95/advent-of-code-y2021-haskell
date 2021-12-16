@@ -51,7 +51,7 @@ soln =
     --  printPointMap point_costs
     --  putStrLn $ show (Map.findMax point_costs)
 
-     let path_costs = bfsPathCosts [(0,0)] point_costs (Map.singleton (0,0) 0)
+     let path_costs = bfsPathCosts (IntMap.singleton 0 (Set.singleton (0,0))) point_costs (Map.singleton (0,0) 0)
          end_point = fst (Map.findMax point_costs)
 
     --  printPointMap path_costs
@@ -96,23 +96,20 @@ soln =
          putStrLn $ intercalate "," (map show (Set.toList points_tail))
 
 
-bfsPathCosts :: [Point] -> PointCosts -> PathCosts -> PathCosts
-bfsPathCosts [] _ path_cs = path_cs
-bfsPathCosts (p:ps) point_cs path_cs = 
-  let adj_point_path_updates = 
-        mapMaybe adjacentPathCostUpdate (adjacentPoints p)
-   in bfsPathCosts (ps ++ map fst adj_point_path_updates)
-                   point_cs 
-                   (foldl' (flip (uncurry Map.insert)) path_cs adj_point_path_updates)
+bfsPathCosts :: IntMap (Set Point) -> PointCosts -> PathCosts -> PathCosts
+bfsPathCosts point_queue point_cs path_cs = 
+  case IntMap.lookupMin point_queue of 
+    Nothing -> path_cs
+    Just (cur_path_cost, ps) ->
+      let adj_point_path_updates :: [(Point, Int)]
+          adj_point_path_updates = 
+            mapMaybe (adjacentPathCostUpdate cur_path_cost) (concatMap adjacentPoints ps)
+       in bfsPathCosts (foldl' (\cs (p, c) -> IntMap.insertWith Set.union c (Set.singleton p) cs) (IntMap.delete cur_path_cost point_queue) adj_point_path_updates)
+                       point_cs 
+                       (foldl' (flip (uncurry Map.insert)) path_cs adj_point_path_updates)
   where 
-    cur_path_cost :: Int
-    cur_path_cost = 
-      case path_cs Map.!? p of 
-        Nothing -> error $ "No path cost for current point: " ++ show p
-        Just c -> c
-
-    adjacentPathCostUpdate :: Point -> Maybe (Point, Int)
-    adjacentPathCostUpdate adj_p = 
+    adjacentPathCostUpdate :: Int -> Point -> Maybe (Point, Int)
+    adjacentPathCostUpdate cur_path_cost adj_p = 
       case Map.lookup adj_p point_cs of
         Nothing -> Nothing
         Just adj_point_cost -> 
