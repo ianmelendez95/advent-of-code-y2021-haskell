@@ -33,6 +33,7 @@ import Data.Void
 
 import Debug.Trace
 
+type Range = (Int,Int)
 
 type Parser = Parsec Void T.Text
 
@@ -42,18 +43,28 @@ inputFile = "src/Day17/short-input.txt"
 
 soln :: IO ()
 soln = 
-  do ranges <- parseInput <$> TIO.readFile inputFile
-     print ranges
+  do (x_range, y_range) <- parseInput <$> TIO.readFile inputFile
+     putStrLn "[Target]"
+     putStrLn $ "x: " ++ show x_range
+     putStrLn $ "y: " ++ show y_range
 
--- parseInput :: T.Text -> ((Int, Int), (Int, Int))
--- parseInput input = 
---   let [_,_,xr,yr] = T.words input
---    in 
---   where 
---     parseRange :: T.Text -> (Int, Int)
---     parseRange range_word = 
+     let vx_range = xVelRange x_range
+     putStrLn $ "x velocity: " ++ show vx_range
 
-parseInput :: T.Text -> ((Int,Int),(Int,Int))
+
+
+xVelRange :: Range -> Range
+xVelRange (x_beg, x_end) = 
+  let trim_x_beg = dropWhile ((< x_beg) . snd) (zip [1..] (scanl (+) 1 [2..]))
+      vx_start = head trim_x_beg
+
+      (x_middle, trim_x_end) = span ((<= x_end) . snd) trim_x_beg
+      vx_end = last x_middle
+   in (fst vx_start, fst vx_end)
+
+
+
+parseInput :: T.Text -> (Range,Range)
 parseInput input = 
   do case parse rangeInput "" input of 
        Left err -> error (errorBundlePretty  err) 
