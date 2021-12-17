@@ -1,4 +1,4 @@
-# advent-of-code-y2021-haskell
+# Advent of Code 2021 in Haskell
 
 Solutions for the [Advent of Code 2021](https://adventofcode.com/2021) challenges.
 
