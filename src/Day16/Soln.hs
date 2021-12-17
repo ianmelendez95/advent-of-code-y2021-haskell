@@ -26,7 +26,23 @@ import qualified Data.IntSet as IntSet
 
 import Control.Monad.State.Lazy
 
+import Text.Megaparsec
+import Text.Megaparsec.Char
+import qualified Text.Megaparsec.Char.Lexer as L
+import Data.Void
+
 import Debug.Trace
+
+type Parser = Parsec Void T.Text
+
+data Packet = PInt Int Int
+            | POp  Int [Packet]
+            | PZeros
+            deriving Show
+
+data PType = PTInt
+           | PTOp
+           deriving Show
 
 
 inputFile = "src/Day16/short-input-0.txt"
@@ -34,14 +50,104 @@ inputFile = "src/Day16/short-input-0.txt"
 
 soln :: IO ()
 soln = 
-  do bin_str <- parseInput <$> TIO.readFile inputFile
-     putStrLn bin_str
+  do packets <- parseInput inputFile
+     print (length packets)
+    --  print packets
+     mapM_ print packets
 
 
-parseInput :: T.Text -> String
-parseInput = concatMap hexToBin . T.unpack
+--------------------------------------------------------------------------------
+-- Parser
 
-hexToBin :: Char -> String
+parseInput :: FilePath -> IO [Packet]
+parseInput file_path =
+  do bin_str <- T.concatMap hexToBin <$> TIO.readFile file_path
+     case parse (manyTill packet trailingZeros) file_path bin_str of 
+       Left err -> error (errorBundlePretty  err) 
+       Right res -> pure res
+
+
+--------------------------------------------------------------------------------
+-- Parser Combinators
+
+trailingZeros :: Parser ()
+trailingZeros = takeWhileP (Just "trailing 0") (== '0') >> eof
+
+packet :: Parser Packet
+packet = 
+  do v <- pVersion
+     t <- pType
+     case t of 
+       PTInt -> PInt v <$> packetIntValue
+       PTOp  -> POp  v <$> subpackets
+
+
+packetIntValue :: Parser Int
+packetIntValue = readBin <$> packetIntValueBin
+
+packetIntValueBin :: Parser T.Text
+packetIntValueBin = 
+  do sign <- anySingle
+     val  <- takeP (Just "value digit") 4
+     case sign of 
+       '1' -> T.append val <$> packetIntValueBin
+       '0' -> pure val
+       c   -> error $ "Unkown value digit: " ++ [c]
+
+
+subpackets :: Parser [Packet]
+subpackets = 
+  do sign <- anySingle
+     case sign of 
+       '0' -> subpacketsByLength
+       '1' -> subpacketsByCount
+       c   -> error $ "Unkown subpackets type digit: " ++ [c]
+
+
+subpacketsByLength :: Parser [Packet]
+subpacketsByLength = 
+  do len <- readBin <$> takeP (Just "subpackets length digit") 15
+     parseAllSubpackets <$> takeP (Just "subpackets content") len
+
+parseAllSubpackets :: T.Text -> [Packet]
+parseAllSubpackets txt = 
+  case parse parseAll "inline" txt of 
+    Left err -> error (errorBundlePretty err)
+    Right res -> res
+  where 
+    parseAll :: Parser [Packet]
+    parseAll = some packet <* eof
+
+
+subpacketsByCount :: Parser [Packet]
+subpacketsByCount = 
+  do c <- readBin <$> takeP (Just "subpacket count") 11 
+     count c packet
+     
+
+
+pVersion :: Parser Int
+pVersion = readBin <$> takeP (Just "version digit") 3
+
+pType :: Parser PType
+pType = readType <$> takeP (Just "type digit") 3
+
+
+readType :: T.Text -> PType
+readType "100" = PTInt
+readType _ = PTOp
+
+readBin :: T.Text -> Int
+readBin = T.foldl' (\tot x -> 2 * tot + digitToInt x) 0
+
+
+--------------------------------------------------------------------------------
+-- Low Level Parsing
+
+-- parseInput :: T.Text -> T.Text
+-- parseInput = T.concatMap hexToBin
+
+hexToBin :: Char -> T.Text
 hexToBin '0' = "0000"
 hexToBin '1' = "0001"
 hexToBin '2' = "0010"
