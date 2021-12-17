@@ -37,7 +37,6 @@ type Parser = Parsec Void T.Text
 
 data Packet = PInt Int Int
             | POp  Int [Packet]
-            | PZeros
             deriving Show
 
 data PType = PTInt
@@ -45,7 +44,7 @@ data PType = PTInt
            deriving Show
 
 
-inputFile = "src/Day16/short-input-0.txt"
+inputFile = "src/Day16/full-input.txt"
 
 
 soln :: IO ()
@@ -55,6 +54,13 @@ soln =
     --  print packets
      mapM_ print packets
 
+     putStrLn $ "Version Sum: " ++ show (sum (map versionSum packets))
+
+
+versionSum :: Packet -> Int
+versionSum (PInt v _) = v
+versionSum (POp v ps) = v + sum (map versionSum ps)
+
 
 --------------------------------------------------------------------------------
 -- Parser
@@ -62,7 +68,7 @@ soln =
 parseInput :: FilePath -> IO [Packet]
 parseInput file_path =
   do bin_str <- T.concatMap hexToBin <$> TIO.readFile file_path
-     case parse (manyTill packet trailingZeros) file_path bin_str of 
+     case parse (manyTill packet (try trailingZeros)) file_path bin_str of 
        Left err -> error (errorBundlePretty  err) 
        Right res -> pure res
 
