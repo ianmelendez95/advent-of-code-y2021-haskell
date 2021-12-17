@@ -36,11 +36,23 @@ import Debug.Trace
 type Parser = Parsec Void T.Text
 
 data Packet = PInt Int Int
-            | POp  Int [Packet]
+            | POp  Int PType [Packet]
             deriving Show
 
-data PType = PTInt
-           | PTOp
+           -- nary
+data PType = PTSum
+           | PTProd
+           | PTMin
+           | PTMax
+
+           -- nullary
+           | PTInt
+
+           -- binary
+           | PTGt
+           | PTLt
+           | PTEq
+
            deriving Show
 
 
@@ -50,27 +62,51 @@ inputFile = "src/Day16/full-input.txt"
 soln :: IO ()
 soln = 
   do packets <- parseInput inputFile
-     print (length packets)
     --  print packets
-     mapM_ print packets
+    --  print packet
 
-     putStrLn $ "Version Sum: " ++ show (sum (map versionSum packets))
+     mapM_ printPacketRes packets
+  where 
+    printPacketRes :: Packet -> IO ()
+    printPacketRes p = 
+      do putStrLn $ "\nVersion Sum: " ++ show (versionSum p)
+         putStrLn $ "Eval: " ++ show (packetValue p)
 
 
 versionSum :: Packet -> Int
 versionSum (PInt v _) = v
-versionSum (POp v ps) = v + sum (map versionSum ps)
+versionSum (POp v _ ps) = v + sum (map versionSum ps)
+
+packetValue :: Packet -> Int
+packetValue (PInt _ v) = v
+packetValue (POp _ op ps) = opValue op (map packetValue ps)
+  where 
+    opValue :: PType -> [Int] -> Int
+    opValue PTInt  vs = error "PTInt is a separate packet type"
+    opValue PTSum  vs = sum vs
+    opValue PTProd vs = product vs
+    opValue PTMin  vs = minimum vs
+    opValue PTMax  vs = maximum vs
+    opValue PTGt   vs = if all (head vs >)  (tail vs) then 1 else 0
+    opValue PTLt   vs = if all (head vs <)  (tail vs) then 1 else 0
+    opValue PTEq   vs = if all (head vs ==) (tail vs) then 1 else 0
 
 
 --------------------------------------------------------------------------------
 -- Parser
 
 parseInput :: FilePath -> IO [Packet]
-parseInput file_path =
-  do bin_str <- T.concatMap hexToBin <$> TIO.readFile file_path
-     case parse (manyTill packet (try trailingZeros)) file_path bin_str of 
+parseInput filepath = 
+  map (parsePacket . T.concatMap hexToBin) . T.lines <$> TIO.readFile filepath
+     
+     
+     
+
+parsePacket :: T.Text -> Packet
+parsePacket bin_str =
+  do case parse (packet <* trailingZeros) "" bin_str of 
        Left err -> error (errorBundlePretty  err) 
-       Right res -> pure res
+       Right res -> res
 
 
 --------------------------------------------------------------------------------
@@ -84,8 +120,8 @@ packet =
   do v <- pVersion
      t <- pType
      case t of 
-       PTInt -> PInt v <$> packetIntValue
-       PTOp  -> POp  v <$> subpackets
+       PTInt -> PInt v   <$> packetIntValue
+       _     -> POp  v t <$> subpackets
 
 
 packetIntValue :: Parser Int
@@ -138,10 +174,16 @@ pVersion = readBin <$> takeP (Just "version digit") 3
 pType :: Parser PType
 pType = readType <$> takeP (Just "type digit") 3
 
-
 readType :: T.Text -> PType
+readType "000" = PTSum
+readType "001" = PTProd
+readType "010" = PTMin
+readType "011" = PTMax
 readType "100" = PTInt
-readType _ = PTOp
+readType "101" = PTGt
+readType "110" = PTLt
+readType "111" = PTEq
+readType tipe = error $ "Unrecognized type: " ++ T.unpack tipe
 
 readBin :: T.Text -> Int
 readBin = T.foldl' (\tot x -> 2 * tot + digitToInt x) 0
