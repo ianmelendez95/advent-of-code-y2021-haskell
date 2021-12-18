@@ -41,7 +41,10 @@ type Parser = Parsec Void T.Text
 
 data Tree = TNode Tree Tree
           | TInt  Int
-          deriving Show
+
+instance Show Tree where 
+  show (TInt v) = show v
+  show (TNode v1 v2) = "[" ++ show v1 ++ "," ++ show v2 ++ "]"
 
 
 inputFile = "src/Day18/short-input-1.txt"
@@ -50,7 +53,7 @@ inputFile = "src/Day18/short-input-1.txt"
 soln :: IO ()
 soln = 
   do ls <- T.lines <$> TIO.readFile inputFile
-     print $ parseExpr (head ls)
+     print $ parseTree (head ls)
 
 -- parseInput :: T.Text -> Int
 -- parseInput = _
@@ -59,33 +62,25 @@ soln =
 --------------------------------------------------------------------------------
 -- Parser
 
-parseExpr :: T.Text -> Expr
-parseExpr input = 
-  case parse pExpr "" input of 
+parseTree :: T.Text -> Tree
+parseTree input = 
+  case parse tree "" input of 
     Left err -> error $ errorBundlePretty err
     Right r -> r
 
-data Expr = EPair Expr Expr
-          | EInt Int
+tree :: Parser Tree
+tree = makeExprParser treeTerm operatorTable
 
-instance Show Expr where 
-  show (EInt v) = show v
-  show (EPair v1 v2) = "[" ++ show v1 ++ "," ++ show v2 ++ "]"
+treeInt :: Parser Tree
+treeInt = TInt <$> L.decimal
 
+treeTerm :: Parser Tree
+treeTerm = 
+  choice [ brackets tree, treeInt ]
 
-pExpr :: Parser Expr
-pExpr = makeExprParser pETerm pOperatorTable
-
-pEInt :: Parser Expr
-pEInt = EInt <$> L.decimal
-
-pETerm :: Parser Expr
-pETerm = 
-  choice [ brackets pExpr, pEInt ]
-
-pOperatorTable :: [[Operator Parser Expr]]
-pOperatorTable = 
-  [[ InfixL (EPair <$ char ',') ]]
+operatorTable :: [[Operator Parser Tree]]
+operatorTable = 
+  [[ InfixL (TNode <$ char ',') ]]
 
 brackets :: Parser a -> Parser a
 brackets = between (char '[') (char ']')
