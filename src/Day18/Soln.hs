@@ -35,10 +35,10 @@ import Debug.Trace
 import Control.Monad.Combinators.Expr 
 
 traceMsgId :: (Show a) => String -> a -> a
-traceMsgId msg x = x -- traceMsgShow msg x x 
+traceMsgId msg x = traceMsgShow msg x x 
 
 traceMsgShow :: (Show a) => String -> a -> b -> b
-traceMsgShow msg x = id -- trace (msg ++ ": " ++ show x)
+traceMsgShow msg x = trace (msg ++ ": " ++ show x)
 
 type Range = (Int,Int)
 
@@ -64,14 +64,14 @@ soln =
      let depths = map treeDepth trees
          max_depth = maximum depths
 
-     putStrLn "\n(Trees)"
-     mapM_ print trees
+    --  putStrLn "\n(Trees)"
+    --  mapM_ print trees
 
     --  putStrLn "\n(Initial Concat)"
     --  print $ concatTrees trees
 
-     putStrLn "\n(Depths)"
-     putStrLn $ "Max: " ++ show max_depth
+    --  putStrLn "\n(Depths)"
+    --  putStrLn $ "Max: " ++ show max_depth
     --  mapM_ print depths
 
      putStrLn "\n(Concat)"
@@ -102,7 +102,7 @@ concatTrees (tree:trees) = fst $ foldl' doFold (tree, 0) trees
   where 
     doFold :: (Tree, Int) -> Tree -> (Tree, Int)
     doFold (tl, er) tr = 
-      let (t', (_, er')) = reduceTree' 0 (0, er) (TNode tl tr)
+      let (t', (_, er')) = reduceTree' (0, er) (TNode tl tr)
        in (t', er')
 
 treeDepth :: Tree -> Int
@@ -110,36 +110,65 @@ treeDepth (TInt t) = 0
 treeDepth (TNode t1 t2) = 1 + max (treeDepth t1) (treeDepth t2)
 
 reduceTree :: Tree -> (Tree, Expl)
-reduceTree = reduceTree' 0 (0,0)
+reduceTree = reduceTree' (0,0)
 
-reduceTree' :: Int -> Expl -> Tree -> (Tree, Expl) 
+reduceTree' :: Expl -> Tree -> (Tree, Expl)
+reduceTree' expl tree =
+  let (tree', expl') = explodeTree' 0 expl (traceMsgId "explode" tree)
+   in case splitTree tree' of 
+        Left tree'' -> (tree'', expl')
+        Right tree'' -> addExpl expl' <$> reduceTree' (0,0) tree''
 
-reduceTree' cur_depth (el, er) t@(TInt v) =
-  let v' = v + el + er
-    in if v' >= 10
-        then reduceTree' cur_depth (0,0) (splitInt v')
-        else (TInt v', (0,0))
 
--- TODO: consider propagating explosions with special traversal
-reduceTree' cur_depth (el, er) t@(TNode tl tr)
+explodeTree :: Tree -> (Tree, Expl)
+explodeTree = explodeTree' 0 (0,0)
+
+explodeTree' :: Int -> Expl -> Tree -> (Tree, Expl) 
+
+explodeTree' cur_depth (el, er) t@(TInt v) = (TInt (v + el + er), (0,0))
+
+explodeTree' cur_depth (el, er) t@(TNode tl tr)
   | cur_depth > 4 = error $ "Depth > 4 shouldn't be possible: " ++ show t
   | cur_depth == 4 = (TInt 0, intPair t)
   | otherwise = 
     let (tl', (tlel, tler)) = 
-          reduceTree' (cur_depth + 1) (0, el) tl
+          explodeTree' (cur_depth + 1) (0, el) tl
         (tr', (trel, trer)) = 
-          reduceTree' (cur_depth + 1) (er, 0) tr
+          explodeTree' (cur_depth + 1) (er, 0) tr
         
         t' = TNode tl' tr'
       in if tler == 0 && trel == 0
-           then (traceMsgId "no prop" t', (tlel, trer))
+           then (t', (tlel, trer))
            else if trel > 0
                        -- exp <- (so they combine and go left)
-                  then addExpl (traceMsgId "prop left" (tlel, trer))
-                         <$> reduceTree' cur_depth (tler + trel, 0) (traceMsgId "prop left" t')
+                  then addExpl ((tlel, trer))
+                         <$> explodeTree' cur_depth (tler + trel, 0) (t')
                        -- exp ->
-                  else addExpl (traceMsgId "prop right" (tlel, trer))
-                         <$> reduceTree' cur_depth (0, tler + trel) (traceMsgId "prop right" t')
+                  else addExpl ((tlel, trer))
+                         <$> explodeTree' cur_depth (0, tler + trel) (t')
+                        
+-- | splits the tree, returning left is all splits
+-- | handled safely, or right if there was a workplace
+-- | accident (resulting explosion)
+splitTree :: Tree -> Either Tree Tree
+splitTree = go 0
+  where 
+    go :: Int -> Tree -> Either Tree Tree
+    go cur_depth t@(TInt v) 
+      | v < 10 = Left t
+      | cur_depth > 4 = error $ "Depth > 4 shouldn't be possible: " ++ show t
+      | cur_depth < 4 = Left  $ splitInt v
+      | otherwise     = Right $ splitInt v
+
+    go cur_depth (TNode tl tr) =
+      case go (cur_depth + 1) tl of 
+        Left tl' -> mapEither (TNode tl') (go (cur_depth + 1) tr)
+        Right tl' -> Right (TNode tl' tr)
+
+mapEither :: (Tree -> Tree) -> Either Tree Tree -> Either Tree Tree
+mapEither f (Left t) = Left (f t)
+mapEither f (Right t) = Right (f t)
+
 
 explHasValue :: Expl -> Bool
 explHasValue (e1, e2) = e1 > 0 || e2 > 0
