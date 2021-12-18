@@ -47,18 +47,24 @@ instance Show Tree where
   show (TNode v1 v2) = "[" ++ show v1 ++ "," ++ show v2 ++ "]"
 
 
-inputFile = "src/Day18/short-input-1.txt"
+inputFile = "src/Day18/short1-input.txt"
 
 
 soln :: IO ()
 soln = 
   do trees <- parseInput <$> TIO.readFile inputFile
+     let depths = map treeDepth trees
+         max_depth = maximum depths
 
      putStrLn "\n(Trees)"
      mapM_ print trees
 
      putStrLn "\n(Initial Concat)"
-     print $ concatTrees trees
+    --  print $ concatTrees trees
+
+     putStrLn "\n(Depths)"
+     putStrLn $ "Max: " ++ show max_depth
+    --  mapM_ print depths
 
 
 --------------------------------------------------------------------------------
@@ -69,6 +75,11 @@ appendTrees = TNode
 
 concatTrees :: [Tree] -> Tree
 concatTrees = foldl1' appendTrees
+
+treeDepth :: Tree -> Int
+treeDepth (TInt t) = 0
+treeDepth (TNode t1 t2) = 1 + max (treeDepth t1) (treeDepth t2)
+
 
 
 --------------------------------------------------------------------------------
