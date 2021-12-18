@@ -57,8 +57,18 @@ soln =
      putStrLn "\n(Trees)"
      mapM_ print trees
 
--- parseInput :: T.Text -> Int
--- parseInput = _
+     putStrLn "\n(Initial Concat)"
+     print $ concatTrees trees
+
+
+--------------------------------------------------------------------------------
+-- Trees
+
+appendTrees :: Tree -> Tree -> Tree
+appendTrees = TNode
+
+concatTrees :: [Tree] -> Tree
+concatTrees = foldl1' appendTrees
 
 
 --------------------------------------------------------------------------------
