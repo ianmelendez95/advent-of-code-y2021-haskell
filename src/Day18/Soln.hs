@@ -122,8 +122,13 @@ preReduceTree' cur_depth (el, er) t@(TNode tl tr)
         t' = TNode tl' tr'
       in if tler == 0 && trel == 0
            then (t', (tlel, trer))
-           else addExpl (tlel, trer) 
-                  <$> preReduceTree' cur_depth (trel, tler) t'
+           else if trel > 0
+                       -- exp <- (so they combine and go left)
+                  then addExpl (tlel, trer) 
+                         <$> preReduceTree' cur_depth (tler + trel, 0) t'
+                       -- exp ->
+                  else addExpl (tlel, trer)
+                         <$> preReduceTree' cur_depth (0, tler + trel) t'
 
 explHasValue :: Expl -> Bool
 explHasValue (e1, e2) = e1 > 0 || e2 > 0
