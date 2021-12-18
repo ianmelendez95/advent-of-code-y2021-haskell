@@ -55,7 +55,7 @@ instance Show Tree where
   show (TNode v1 v2) = "[" ++ show v1 ++ "," ++ show v2 ++ "]"
 
 
-inputFile = "src/Day18/short1-input.txt"
+inputFile = "src/Day18/short4-input.txt"
 
 
 soln :: IO ()
@@ -67,12 +67,15 @@ soln =
      putStrLn "\n(Trees)"
      mapM_ print trees
 
-     putStrLn "\n(Initial Concat)"
+    --  putStrLn "\n(Initial Concat)"
     --  print $ concatTrees trees
 
      putStrLn "\n(Depths)"
      putStrLn $ "Max: " ++ show max_depth
     --  mapM_ print depths
+
+     putStrLn "\n(Concat)"
+     print $ concatTrees trees
 
 
 --------------------------------------------------------------------------------
@@ -90,20 +93,22 @@ explTest1 =
 --------------------------------------------------------------------------------
 -- Trees
 
-appendTrees :: Tree -> Tree -> Tree
-appendTrees = TNode
+appendTrees :: Tree -> Tree -> (Tree, Expl)
+appendTrees tl tr = reduceTree (TNode tl tr)
 
 concatTrees :: [Tree] -> Tree
-concatTrees = foldl1' appendTrees
+concatTrees [] = error "no trees"
+concatTrees (tree:trees) = fst $ foldl' doFold (tree, 0) trees
+  where 
+    doFold :: (Tree, Int) -> Tree -> (Tree, Int)
+    doFold (tl, er) tr = 
+      let (t', (_, er')) = reduceTree' 0 (0, er) (TNode tl tr)
+       in (t', er')
 
 treeDepth :: Tree -> Int
 treeDepth (TInt t) = 0
 treeDepth (TNode t1 t2) = 1 + max (treeDepth t1) (treeDepth t2)
 
--- | Preemptively reduce tree, pending concatenation.
--- | In other words, reduce as if its depth was 1 more than it 
--- | is, since that is what it will have right after its concatenated
--- | with another tree.
 reduceTree :: Tree -> (Tree, Expl)
 reduceTree = reduceTree' 0 (0,0)
 
