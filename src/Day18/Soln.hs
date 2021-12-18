@@ -52,8 +52,10 @@ inputFile = "src/Day18/short-input-1.txt"
 
 soln :: IO ()
 soln = 
-  do ls <- T.lines <$> TIO.readFile inputFile
-     print $ parseTree (head ls)
+  do trees <- parseInput <$> TIO.readFile inputFile
+
+     putStrLn "\n(Trees)"
+     mapM_ print trees
 
 -- parseInput :: T.Text -> Int
 -- parseInput = _
@@ -62,21 +64,24 @@ soln =
 --------------------------------------------------------------------------------
 -- Parser
 
+parseInput :: T.Text -> [Tree]
+parseInput = map parseTree . T.lines
+
 parseTree :: T.Text -> Tree
 parseTree input = 
-  case parse tree "" input of 
+  case parse pTree "" input of 
     Left err -> error $ errorBundlePretty err
     Right r -> r
 
-tree :: Parser Tree
-tree = makeExprParser treeTerm operatorTable
+pTree :: Parser Tree
+pTree = makeExprParser pTreeTerm operatorTable
 
-treeInt :: Parser Tree
-treeInt = TInt <$> L.decimal
+pTreeInt :: Parser Tree
+pTreeInt = TInt <$> L.decimal
 
-treeTerm :: Parser Tree
-treeTerm = 
-  choice [ brackets tree, treeInt ]
+pTreeTerm :: Parser Tree
+pTreeTerm = 
+  choice [ brackets pTree, pTreeInt ]
 
 operatorTable :: [[Operator Parser Tree]]
 operatorTable = 
