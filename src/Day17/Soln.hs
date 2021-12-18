@@ -48,8 +48,11 @@ soln =
      putStrLn $ "x: " ++ show x_range
      putStrLn $ "y: " ++ show y_range
 
-     let vx_range = xVelRange x_range
-     putStrLn $ "x velocity: " ++ show vx_range
+     let (min_vx, max_vx) = xVelRange x_range
+         (min_vy, max_vy) = yVelRange min_vx y_range
+     putStrLn $ "x velocity: " ++ show (min_vx, max_vx)
+     putStrLn $ "y velocity: " ++ show (min_vy, max_vy)
+
 
 
 
@@ -62,6 +65,32 @@ xVelRange (x_beg, x_end) =
       vx_end = last x_middle
    in (fst vx_start, fst vx_end)
 
+yVelRange :: Int -> Range -> Range
+yVelRange vx (y_beg, y_end) = 
+  let vys = map (yAtXZeroVel vx) [1..]
+      
+      trim_y_beg = dropWhile ((< y_beg) . snd) (zip [1..] vys)
+      vy_start = head trim_y_beg
+
+      (y_middle, trim_y_end) = span ((<= y_end) . snd) trim_y_beg
+      vy_end = last y_middle
+   in (fst vy_start, fst vy_end)
+
+yAtXZeroVel :: Int -> Int -> Int
+yAtXZeroVel vx vy = s vy - s (vy - vx)
+  where 
+    s :: Int -> Int
+    s n
+      | n >= 0    = ((n ^ 2) + n) `div` 2 
+      | otherwise = s (-(n + 1))
+
+maxY :: Int -> Int -> Int
+maxY vx vy = r vy - r (vy - vx)
+  where 
+    r :: Int -> Int
+    r n 
+      | n >= 0    = ((n ^ 2) + n) `div` 2 
+      | otherwise = 0
 
 
 parseInput :: T.Text -> (Range,Range)
