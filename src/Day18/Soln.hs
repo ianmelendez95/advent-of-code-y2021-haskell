@@ -55,7 +55,7 @@ instance Show Tree where
   show (TNode v1 v2) = "[" ++ show v1 ++ "," ++ show v2 ++ "]"
 
 
-inputFile = "src/Day18/short4-input.txt"
+inputFile = "src/Day18/short-split-input.txt"
 
 
 soln :: IO ()
