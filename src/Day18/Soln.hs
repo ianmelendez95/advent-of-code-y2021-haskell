@@ -80,10 +80,10 @@ soln =
 
 explTest1 :: IO ()
 explTest1 = 
-  do let t = parseTree "[[[[1,1],[2,2]],[3,3]],[4,4]]"
+  do let t = parseTree "[[[[[1,1],[2,2]],[3,3]],[4,4]],[5,5]]"
      print t
 
-     let t' = preReduceTree t
+     let t' = reduceTree t
      print t'
 
 
@@ -104,26 +104,26 @@ treeDepth (TNode t1 t2) = 1 + max (treeDepth t1) (treeDepth t2)
 -- | In other words, reduce as if its depth was 1 more than it 
 -- | is, since that is what it will have right after its concatenated
 -- | with another tree.
-preReduceTree :: Tree -> (Tree, Expl)
-preReduceTree = preReduceTree' 0 (0,0)
+reduceTree :: Tree -> (Tree, Expl)
+reduceTree = reduceTree' 0 (0,0)
 
-preReduceTree' :: Int -> Expl -> Tree -> (Tree, Expl) 
+reduceTree' :: Int -> Expl -> Tree -> (Tree, Expl) 
 
-preReduceTree' cur_depth (el, er) t@(TInt v) =
+reduceTree' cur_depth (el, er) t@(TInt v) =
   let v' = v + el + er
     in if v' >= 10
-        then preReduceTree' cur_depth (0,0) (splitInt v')
+        then reduceTree' cur_depth (0,0) (splitInt v')
         else (TInt v', (0,0))
 
 -- TODO: consider propagating explosions with special traversal
-preReduceTree' cur_depth (el, er) t@(TNode tl tr)
-  | cur_depth > 3 = error $ "Depth > 3 shouldn't be possible: " ++ show t
-  | cur_depth == 3 = (TInt 0, intPair t)
+reduceTree' cur_depth (el, er) t@(TNode tl tr)
+  | cur_depth > 4 = error $ "Depth > 4 shouldn't be possible: " ++ show t
+  | cur_depth == 4 = (TInt 0, intPair t)
   | otherwise = 
     let (tl', (tlel, tler)) = 
-          preReduceTree' (cur_depth + 1) (0, el) tl
+          reduceTree' (cur_depth + 1) (0, el) tl
         (tr', (trel, trer)) = 
-          preReduceTree' (cur_depth + 1) (er, 0) tr
+          reduceTree' (cur_depth + 1) (er, 0) tr
         
         t' = TNode tl' tr'
       in if tler == 0 && trel == 0
@@ -131,10 +131,10 @@ preReduceTree' cur_depth (el, er) t@(TNode tl tr)
            else if trel > 0
                        -- exp <- (so they combine and go left)
                   then addExpl (traceMsgId "prop left" (tlel, trer))
-                         <$> preReduceTree' cur_depth (tler + trel, 0) (traceMsgId "prop left" t')
+                         <$> reduceTree' cur_depth (tler + trel, 0) (traceMsgId "prop left" t')
                        -- exp ->
                   else addExpl (traceMsgId "prop right" (tlel, trer))
-                         <$> preReduceTree' cur_depth (0, tler + trel) (traceMsgId "prop right" t')
+                         <$> reduceTree' cur_depth (0, tler + trel) (traceMsgId "prop right" t')
 
 explHasValue :: Expl -> Bool
 explHasValue (e1, e2) = e1 > 0 || e2 > 0
