@@ -34,6 +34,12 @@ import Data.Void
 import Debug.Trace
 import Control.Monad.Combinators.Expr 
 
+traceMsgId :: (Show a) => String -> a -> a
+traceMsgId msg x = x -- traceMsgShow msg x x 
+
+traceMsgShow :: (Show a) => String -> a -> b -> b
+traceMsgShow msg x = id -- trace (msg ++ ": " ++ show x)
+
 type Range = (Int,Int)
 
 type Parser = Parsec Void T.Text
@@ -114,21 +120,21 @@ preReduceTree' cur_depth (el, er) t@(TNode tl tr)
   | cur_depth > 3 = error $ "Depth > 3 shouldn't be possible: " ++ show t
   | cur_depth == 3 = (TInt 0, intPair t)
   | otherwise = 
-    let (tl', (trel, trer)) = 
+    let (tl', (tlel, tler)) = 
           preReduceTree' (cur_depth + 1) (0, el) tl
-        (tr', (tlel, tler)) = 
+        (tr', (trel, trer)) = 
           preReduceTree' (cur_depth + 1) (er, 0) tr
         
         t' = TNode tl' tr'
       in if tler == 0 && trel == 0
-           then (t', (tlel, trer))
+           then (traceMsgId "no prop" t', (tlel, trer))
            else if trel > 0
                        -- exp <- (so they combine and go left)
-                  then addExpl (tlel, trer) 
-                         <$> preReduceTree' cur_depth (tler + trel, 0) t'
+                  then addExpl (traceMsgId "prop left" (tlel, trer))
+                         <$> preReduceTree' cur_depth (tler + trel, 0) (traceMsgId "prop left" t')
                        -- exp ->
-                  else addExpl (tlel, trer)
-                         <$> preReduceTree' cur_depth (0, tler + trel) t'
+                  else addExpl (traceMsgId "prop right" (tlel, trer))
+                         <$> preReduceTree' cur_depth (0, tler + trel) (traceMsgId "prop right" t')
 
 explHasValue :: Expl -> Bool
 explHasValue (e1, e2) = e1 > 0 || e2 > 0
