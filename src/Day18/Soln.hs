@@ -55,7 +55,7 @@ instance Show Tree where
   show (TNode v1 v2) = "[" ++ show v1 ++ "," ++ show v2 ++ "]"
 
 
-inputFile = "src/Day18/short-split-input.txt"
+inputFile = "src/Day18/short4-input.txt"
 
 
 soln :: IO ()
@@ -75,7 +75,7 @@ soln =
     --  mapM_ print depths
 
      putStrLn "\n(Concat)"
-     print $ concatTrees trees
+     print $ concatTrees (take 2 trees)
 
 
 --------------------------------------------------------------------------------
@@ -102,7 +102,7 @@ concatTrees (tree:trees) = fst $ foldl' doFold (tree, 0) trees
   where 
     doFold :: (Tree, Int) -> Tree -> (Tree, Int)
     doFold (tl, er) tr = 
-      let (t', (_, er')) = reduceTree' (0, er) (TNode tl tr)
+      let (t', (_, er')) = reduceTree' (0, er') (TNode tl tr)
        in (t', er')
 
 treeDepth :: Tree -> Int
@@ -114,9 +114,9 @@ reduceTree = reduceTree' (0,0)
 
 reduceTree' :: Expl -> Tree -> (Tree, Expl)
 reduceTree' expl tree =
-  let (tree', expl') = explodeTree' 0 expl (traceMsgId "explode" tree)
-   in case splitTree tree' of 
-        Left tree'' -> (tree'', expl')
+  let (tree', expl') = traceMsgId "explode" $ explodeTree' 0 expl (traceMsgId "reduce " tree)
+   in case traceMsgId "split  " $ splitTree tree' of 
+        Left tree'' -> ( tree'', expl')
         Right tree'' -> addExpl expl' <$> reduceTree' (0,0) tree''
 
 
@@ -156,8 +156,8 @@ splitTree = go 0
     go :: Int -> Tree -> Either Tree Tree
     go cur_depth t@(TInt v) 
       | v < 10 = Left t
-      | cur_depth > 4 = error $ "Depth > 4 shouldn't be possible: " ++ show t
-      | cur_depth < 4 = Left  $ splitInt v
+      -- | cur_depth > 4 = error $ "Depth > 4 shouldn't be possible: " ++ show t
+      | cur_depth < 4 = go cur_depth (splitInt v)
       | otherwise     = Right $ splitInt v
 
     go cur_depth (TNode tl tr) =
