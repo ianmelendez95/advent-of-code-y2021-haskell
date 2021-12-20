@@ -59,6 +59,9 @@ soln :: IO ()
 soln = 
   do (algo, image) <- parseInput <$> TIO.readFile inputFile
 
+     let image' = enhancedImage algo image
+         image'' = enhancedImage algo image'
+
      putStrLn $ showAlgo algo
 
      putStrLn ""
@@ -66,19 +69,28 @@ soln =
      putStrLn $ showImage image
 
      putStrLn "\n[ENHANCE!]"
-     putStrLn $ showImage (enhancedImage algo image)
+     putStrLn $ showImage image'
+
+     putStrLn "\n[ENHANCE AGAIN!]"
+     putStrLn $ showImage image''
   where 
     showAlgo :: Algo -> String
     showAlgo = map (\on -> if on then '#' else '.') . V.toList
 
     showImage :: Image -> String
     showImage img = 
-      let (low_m, low_n) = Set.findMin img
-          (high_m, high_n) = Set.findMax img
+      let ((low_m, high_m), (low_n, high_n)) = pointBounds img
 
           rows :: [String]
           rows = map (\r -> map (\c -> if (r,c) `Set.member` img then '#' else '.') [low_n..high_n]) [low_m..high_m]
        in unlines rows
+
+
+pointBounds :: Set Point -> ((Int,Int), (Int,Int))
+pointBounds points = 
+  let ms = map fst (Set.toList points)
+      ns = map snd (Set.toList points)
+   in ((minimum ms, maximum ms), (minimum ns, maximum ns))
 
 
 enhancedImage :: Algo -> Image -> Image
