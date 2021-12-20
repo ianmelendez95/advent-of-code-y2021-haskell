@@ -64,14 +64,16 @@ soln =
 
      putStrLn $ showAlgo algo
 
-     putStrLn ""
-
+     putStrLn "[Show me the evidence]"
+     putStrLn $ "Lit: " ++ show (Set.size image)
      putStrLn $ showImage image
 
      putStrLn "\n[ENHANCE!]"
+     putStrLn $ "Lit: " ++ show (Set.size image')
      putStrLn $ showImage image'
 
      putStrLn "\n[ENHANCE AGAIN!]"
+     putStrLn $ "Lit: " ++ show (Set.size image'')
      putStrLn $ showImage image''
   where 
     showAlgo :: Algo -> String
