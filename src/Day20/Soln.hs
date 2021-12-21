@@ -112,7 +112,7 @@ imageRegion :: Image -> [Point]
 imageRegion = concatMap cluster . Set.toList
 
 twiceImageRegion :: Image -> [Point]
-twiceImageRegion = concatMap cluster . concatMap cluster . Set.toList
+twiceImageRegion = Set.toList . Set.fromList . concatMap cluster . concatMap cluster . Set.toList
 
 
 twiceEnhancedPoint :: Algo -> Image -> Point -> Bool
