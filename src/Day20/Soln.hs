@@ -63,6 +63,9 @@ soln =
          image'' = enhancedImage algo image'
          image_2e = twiceEnhancedImage algo image
 
+         image_twice_enhanced_iter = iterate (twiceEnhancedImage algo) image
+         idx_image_twice_enhanced = zip [0..] image_twice_enhanced_iter
+
      putStrLn $ showAlgo algo
 
     --  putStrLn "[Show me the evidence]"
@@ -78,7 +81,7 @@ soln =
     --  putStrLn $ showImage image''
 
      putStrLn "\n[OPTIMAL ENHANCE]"
-     putStrLn $ "Lit: " ++ show (Set.size image_2e)
+     putStrLn $ "Lit: " ++ show (Set.size (image_twice_enhanced_iter !! 25))
     --  putStrLn $ showImage image_2e
   where 
     showAlgo :: Algo -> String
