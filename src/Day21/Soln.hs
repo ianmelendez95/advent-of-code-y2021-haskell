@@ -140,3 +140,16 @@ parseInput input =
   where 
     parseLine :: T.Text -> Int
     parseLine = read . T.unpack . last . T.words
+
+
+diracTurnRolls :: [Int]
+diracTurnRolls = sort . map sum $ possibleRolls [1,2,3]
+
+possibleRolls :: [Int] -> [[Int]]
+possibleRolls xs = 
+  let xs' :: [[Int]]
+      xs' = map (:[]) xs
+
+      xs'' :: [[Int]]
+      xs'' = (:) <$> xs <*> xs' 
+   in (:) <$> xs <*> xs''
