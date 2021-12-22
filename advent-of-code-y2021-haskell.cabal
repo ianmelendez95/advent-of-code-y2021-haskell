@@ -38,6 +38,7 @@ library
       Day19.Soln
       Day2.Soln
       Day20.Soln
+      Day21.Soln
       Day3.Soln
       Day4.Soln
       Day5.Soln
@@ -60,4 +61,16 @@ library
     , sort
     , text
     , vector
+  default-language: Haskell2010
+
+executable aoc21
+  main-is: Main.hs
+  other-modules:
+      Paths_advent_of_code_y2021_haskell
+  hs-source-dirs:
+      app
+  ghc-options: -threaded -rtsopts -with-rtsopts=-N
+  build-depends:
+      advent-of-code-y2021-haskell
+    , base >=4.7 && <5
   default-language: Haskell2010
