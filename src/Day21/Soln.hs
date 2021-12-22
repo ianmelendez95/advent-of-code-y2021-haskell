@@ -48,7 +48,7 @@ type Parser = Parsec Void T.Text
 
 
 inputFile :: FilePath
-inputFile = "src/Day21/short-input.txt"
+inputFile = "src/Day21/full-input.txt"
 
 
 soln :: IO ()
@@ -59,10 +59,10 @@ soln =
      print (p1,p2)
 
      let positions = roundPositions init_pos
-         scores = cumSumPairs (drop 1 positions)
+         scores = turnScores init_pos
          idx_scores = zip [0..] scores
         
-         (Just win_round) = find (isWinRound . snd) idx_scores
+         (Just win_round) = find (isWinTurn . snd) idx_scores
 
      putStrLn "\n[Round Positions]"
      mapM_ print (take 5 positions)
@@ -72,19 +72,16 @@ soln =
 
      putStrLn "\n[Winning Round]"
      print win_round
-     putStrLn $ "Rolls: " ++ show (winRoundRolls win_round)
+     putStrLn $ "Rolls: " ++ show (winTurnRolls win_round)
 
-    --  putStrLn "\n[Result]"
-    --  print (winRoundRolls win_round * loserScore (snd win_round))
+     putStrLn "\n[Result]"
+     print (winTurnRolls win_round * loserScore (snd win_round))
   where 
-    isWinRound :: (Int,Int) -> Bool
-    isWinRound (s1,s2) = s1 >= 1000 || s2 >= 1000
+    isWinTurn :: (Int,Int) -> Bool
+    isWinTurn (s1,s2) = s1 >= 1000 || s2 >= 1000
 
-    winRoundRolls :: (Int,(Int,Int)) -> Int
-    winRoundRolls r@(round,(s1, s2))
-      | s1 >= 1000 = ((round - 1) * 6) + 3
-      | s2 >= 1000 = ((round - 1) * 6) + 6
-      | otherwise = error $ "No winner: " ++ show r
+    winTurnRolls :: (Int,(Int,Int)) -> Int
+    winTurnRolls = (*3) . fst
 
     loserScore :: (Int,Int) -> Int
     loserScore (s1, s2)
@@ -92,17 +89,27 @@ soln =
       | otherwise = s2
      
 
-roundScores :: (Int,Int) -> [(Int,Int)]
-roundScores = cumSumPairs . roundPositions
+-- roundScores :: (Int,Int) -> [(Int,Int)]
+-- roundScores = cumSumPairs . roundPositions
 
-cumSumPairs :: [(Int,Int)] -> [(Int,Int)]
-cumSumPairs = scanl' doSum (0,0)
+turnScores :: (Int, Int) -> [(Int, Int)]
+turnScores = go (0,0) . drop 1 . roundPositions
   where 
-    doSum :: (Int,Int) -> (Int,Int) -> (Int,Int)
-    doSum (s1, s2) (x1, x2) = 
-      let s1' = s1 + x1
-          s2' = s2 + x2
-       in s1' `seq` s2' `seq` (s1', s2')
+    go :: (Int,Int) -> [(Int,Int)] -> [(Int,Int)]
+    go _ [] = []
+    go t0@(!s1, !s2) ((p1, p2):ps) = 
+      let t1 = (s1 + p1, s2)
+          t2 = (s1 + p1, s2 + p2)
+       in t0 : t1 : go t2 ps
+
+-- cumSumPairs :: [(Int,Int)] -> [(Int,Int)]
+-- cumSumPairs = scanl' doSum (0,0)
+--   where 
+--     doSum :: (Int,Int) -> (Int,Int) -> (Int,Int)
+--     doSum (s1, s2) (x1, x2) = 
+--       let s1' = s1 + x1
+--           s2' = s2 + x2
+--        in s1' `seq` s2' `seq` (s1', s2')
 
 
 roundPositions :: (Int,Int) -> [(Int,Int)]
