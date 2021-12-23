@@ -90,12 +90,17 @@ soln :: IO ()
 soln = 
   do rooms <- parseInput <$> TIO.readFile inputFile
      let init_state = roomsToState rooms
+         (first_pos, first_letter) = head (Map.toList init_state)
 
      putStrLn "\n[Initial Rooms]"
      mapM_ print rooms
 
      putStrLn "\n[Initial State]"
      putStrLn $ renderState init_state
+     
+     putStrLn "\n[Valid Paths]"
+     print (first_pos, first_letter) 
+     mapM_ print (validLetterPaths first_letter first_pos)
 
 
 -- nextStates :: PosState -> [PosState]
@@ -119,8 +124,31 @@ soln =
 --------------------------------------------------------------------------------
 -- Pos Letter Paths
 
--- letterSubpaths :: Letter -> [Pos] -> [[Pos]]
--- letterSubpaths l (cur_pos:next_pos:rest_pos) = _
+validLetterPaths :: Letter -> Pos -> [[Pos]]
+validLetterPaths lett cur_pos =
+  let all_paths = posPaths cur_pos
+      cross_paths = filter validCrosses all_paths
+   in cross_paths
+
+
+validCrosses :: [Pos] -> Bool
+validCrosses = (== 1) . roomHallCrosses
+
+validLetterPos :: Letter -> PosState -> Set Pos
+validLetterPos lett pos_state = 
+  let all_possible = possibleLetterPos lett
+      unoccupied = Set.filter posUnoccupied all_possible
+   in if ownLowerHasWrongLetter 
+        then Set.delete (ownRoomUpper lett) unoccupied
+        else unoccupied
+  where 
+    posUnoccupied :: Pos -> Bool
+    posUnoccupied = isNothing . (`Map.lookup` pos_state)
+
+    ownLowerHasWrongLetter :: Bool
+    ownLowerHasWrongLetter = 
+      maybe False (/= lett) (Map.lookup (ownRoomLower lett) pos_state)
+
 
 roomHallCrosses :: [Pos] -> Int
 roomHallCrosses (cur_pos:rest_pos@(next_pos:_))
@@ -139,6 +167,12 @@ toSnd f x = (x, f x)
 
 --------------------------------------------------------------------------------
 -- Pos Predicates
+
+possibleLetterPos :: Letter -> Set Pos
+possibleLetterPos = Set.union hallways . ownRooms
+
+ownRooms :: Letter -> Set Pos
+ownRooms l = Set.fromList [ownRoomLower l, ownRoomUpper l]
 
 ownRoomLower :: Letter -> Pos
 ownRoomLower A = RAL
