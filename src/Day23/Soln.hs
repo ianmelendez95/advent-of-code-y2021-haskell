@@ -79,6 +79,8 @@ data Pos = RAU -- rooms
          
 type PosState = Map Pos Letter
 
+type PosGraph = Map Pos [Pos]
+
 
 inputFile :: FilePath
 inputFile = "src/Day23/short-input.txt"
@@ -95,6 +97,64 @@ soln =
      putStrLn "\n[Initial State]"
      putStrLn $ renderState init_state
 
+
+nextStates :: PosState -> [PosState]
+nextStates cur_state = concatMap forPos (letterPositions cur_state)
+  where 
+    forPos :: (Letter, Pos) -> [PosState]
+    forPos (l, p) = _
+
+letterPositions :: PosState -> [(Letter, Pos)]
+letterPositions = map flp . Map.toList
+  where 
+    flp (x,y) = (y,x)
+
+posPaths :: Pos -> [[Pos]]
+posPaths = _
+
+
+--------------------------------------------------------------------------------
+-- Board
+
+posGraph :: PosGraph
+posGraph = fromEdges edges
+  where 
+    fromEdges :: [(Pos, Pos)] -> PosGraph
+    fromEdges = foldl' insertEdge Map.empty
+
+    insertEdge :: PosGraph -> (Pos, Pos) -> PosGraph
+    insertEdge graph (p1, p2) = 
+      let graph' = Map.insertWith (++) p1 [p2] graph
+       in Map.insertWith (++) p2 [p1] graph'
+
+    edges = 
+      [ (RAU, RAL)
+      , (RAU, HLR)
+      , (RAU, HML)
+
+      , (RBU, RBL)
+      , (RBU, HML)
+      , (RBU, HMM)
+
+      , (RCU, RCL)
+      , (RCU, HMM)
+      , (RCU, HMR)
+
+      , (RDU, RDL)
+      , (RDU, HMR)
+      , (RDU, HRL)
+
+      , (HLL, HLR)
+      , (HLR, HML)
+      , (HML, HMM)
+      , (HMM, HMR)
+      , (HMR, HRL)
+      , (HRL, HRR)
+      ]
+
+
+--------------------------------------------------------------------------------
+-- Parsing
 
 roomsToState :: [[Letter]] -> PosState
 roomsToState rooms = 
@@ -113,6 +173,9 @@ parseInput input =
     parseLetter 'D' = D
     parseLetter l = error [l]
 
+
+--------------------------------------------------------------------------------
+-- Render
 
 renderState :: PosState -> String
 renderState pos_state = 
