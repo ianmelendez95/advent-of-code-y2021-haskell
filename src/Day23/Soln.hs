@@ -27,7 +27,7 @@ import qualified Data.IntSet as IntSet
 
 import Control.Monad.State.Lazy
 
-import Text.Megaparsec
+import Text.Megaparsec hiding (Pos (..), PosState (..))
 import Text.Megaparsec.Char
 import qualified Text.Megaparsec.Char.Lexer as L
 import Data.Void
@@ -47,6 +47,38 @@ traceMsgShow msg x = trace (msg ++ ": " ++ show x)
 type Parser = Parsec Void T.Text
 
 
+data Letter = A
+            | B
+            | C
+            | D
+            deriving Show
+
+data Pos = RAU -- rooms
+         | RAL
+
+         | RBU
+         | RBL
+
+         | RCU
+         | RCL
+
+         | RDU
+         | RDL
+
+         | HLL -- hallways
+         | HLR
+
+         | HML
+         | HMM
+         | HMR
+
+         | HRL
+         | HRR
+         deriving Show
+
+         
+type PosState = [(Pos, Letter)]
+
 
 inputFile :: FilePath
 inputFile = "src/Day23/short-input.txt"
@@ -54,12 +86,29 @@ inputFile = "src/Day23/short-input.txt"
 
 soln :: IO ()
 soln = 
-  do corrs <- parseInput <$> TIO.readFile inputFile
-     mapM_ print corrs
+  do rooms <- parseInput <$> TIO.readFile inputFile
+     let init_state = roomsToState rooms
+
+     putStrLn "\n[Initial Rooms]"
+     mapM_ print rooms
+
+     putStrLn "\n[Initial State]"
+     mapM_ print init_state
 
 
-parseInput :: T.Text -> [[Char]]
+roomsToState :: [[Letter]] -> PosState
+roomsToState rooms = 
+  let room_pos = [RAU, RAL, RBU, RBL, RCU, RCL, RDU, RDL]
+   in zip room_pos (concat rooms)
+
+parseInput :: T.Text -> [[Letter]]
 parseInput input = 
-  let corr_ls = take 2 . drop 2 $ T.lines input
-      row_cs = map (T.unpack . T.filter isLetter) corr_ls
+  let rooms_ls = take 2 . drop 2 $ T.lines input
+      row_cs = map (map parseLetter . T.unpack . T.filter isLetter) rooms_ls
    in transpose row_cs
+  where 
+    parseLetter 'A' = A
+    parseLetter 'B' = B
+    parseLetter 'C' = C
+    parseLetter 'D' = D
+    parseLetter l = error [l]
