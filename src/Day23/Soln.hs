@@ -74,10 +74,10 @@ data Pos = RAU -- rooms
 
          | HRL
          | HRR
-         deriving Show
+         deriving (Eq, Ord, Show)
 
          
-type PosState = [(Pos, Letter)]
+type PosState = Map Pos Letter
 
 
 inputFile :: FilePath
@@ -93,13 +93,13 @@ soln =
      mapM_ print rooms
 
      putStrLn "\n[Initial State]"
-     mapM_ print init_state
+     putStrLn $ renderState init_state
 
 
 roomsToState :: [[Letter]] -> PosState
 roomsToState rooms = 
   let room_pos = [RAU, RAL, RBU, RBL, RCU, RCL, RDU, RDL]
-   in zip room_pos (concat rooms)
+   in Map.fromList $ zip room_pos (concat rooms)
 
 parseInput :: T.Text -> [[Letter]]
 parseInput input = 
@@ -112,3 +112,76 @@ parseInput input =
     parseLetter 'C' = C
     parseLetter 'D' = D
     parseLetter l = error [l]
+
+
+renderState :: PosState -> String
+renderState pos_state = 
+  let ls = 
+        [ top
+        , hallway
+        , roomUpper
+        , roomLower
+        , bottom
+        ]
+   in unlines ls
+  where 
+    top = "#############"
+
+    hallway = 
+      [ '#'
+      , renderPos HLL
+      , renderPos HLR
+      , '.'
+      , renderPos HML
+      , '.'
+      , renderPos HMM
+      , '.'
+      , renderPos HMR
+      , '.'
+      , renderPos HRL
+      , renderPos HRR
+      , '#'
+      ]
+    
+    roomUpper =
+      [ '#'
+      , '#'
+      , '#'
+      , renderPos RAU
+      , '#'
+      , renderPos RBU
+      , '#'
+      , renderPos RCU
+      , '#'
+      , renderPos RDU
+      , '#'
+      , '#'
+      , '#'
+      ]
+
+    roomLower =
+      [ ' '
+      , ' '
+      , '#'
+      , renderPos RAL
+      , '#'
+      , renderPos RBL
+      , '#'
+      , renderPos RCL
+      , '#'
+      , renderPos RDL
+      , '#'
+      , ' '
+      , ' '
+      ]
+    
+    bottom = "  #########"
+
+    renderPos :: Pos -> Char
+    renderPos pos = maybe '.' letterChar (Map.lookup pos pos_state)
+    
+    letterChar :: Letter -> Char
+    letterChar l = 
+      case show l of 
+        [c] -> c
+        cs -> error cs
