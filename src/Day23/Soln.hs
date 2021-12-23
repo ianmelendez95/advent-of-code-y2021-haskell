@@ -51,7 +51,7 @@ data Letter = A
             | B
             | C
             | D
-            deriving Show
+            deriving (Eq, Ord, Show)
 
 data Pos = RAU -- rooms
          | RAL
@@ -79,7 +79,7 @@ data Pos = RAU -- rooms
          
 type PosState = Map Pos Letter
 
-type PosGraph = Map Pos [Pos]
+type PosGraph = Map Pos (Set Pos)
 
 
 inputFile :: FilePath
@@ -98,23 +98,73 @@ soln =
      putStrLn $ renderState init_state
 
 
-nextStates :: PosState -> [PosState]
-nextStates cur_state = concatMap forPos (letterPositions cur_state)
-  where 
-    forPos :: (Letter, Pos) -> [PosState]
-    forPos (l, p) = _
+-- nextStates :: PosState -> [PosState]
+-- nextStates cur_state = concatMap forPos (letterPositions cur_state)
+--   where 
+--     forPos :: (Letter, Pos) -> [PosState]
+--     forPos (l, p) = _
 
-letterPositions :: PosState -> [(Letter, Pos)]
-letterPositions = map flp . Map.toList
-  where 
-    flp (x,y) = (y,x)
+-- letterPositions :: PosState -> [(Letter, Pos)]
+-- letterPositions = map flp . Map.toList
+--   where 
+--     flp (x,y) = (y,x)
 
-posPaths :: Pos -> [[Pos]]
-posPaths = _
+-- letterPaths :: Pos -> Letter -> [(Pos, Int)]
+-- letterPaths cur_pos lett = _
+
+-- rawPaths :: Pos -> Letter -> [[Pos]]
+-- rawPaths pos lett = _
+
+
+
+--------------------------------------------------------------------------------
+-- Pos Predicates
+
+ownRoomLower :: Letter -> Pos
+ownRoomLower A = RAL
+ownRoomLower B = RBL
+ownRoomLower C = RCL
+ownRoomLower D = RDL
+
+ownRoomUpper :: Letter -> Pos
+ownRoomUpper A = RAU
+ownRoomUpper B = RBU
+ownRoomUpper C = RCU
+ownRoomUpper D = RDU
+
+hallways :: Set Pos
+hallways = Set.fromList [HLL, HLR, HML, HMM, HMR, HRL, HRR]
+
+canPartialMoveIntoPos :: Letter -> Pos -> PosState -> Bool
+canPartialMoveIntoPos lett pos pos_state = 
+  case Map.lookup pos pos_state of 
+    Just _ -> False  -- already full, no go
+    Nothing -> 
+      let is_hall = pos `Set.member` hallways
+          is_lower = pos == ownRoomLower lett 
+          is_valid_upper = pos == ownRoomUpper lett && ownRoomLowerHasSelfOrEmpty
+       in is_hall || is_lower || is_valid_upper
+  where 
+    ownRoomLowerHasSelfOrEmpty :: Bool
+    ownRoomLowerHasSelfOrEmpty =  
+      maybe True (== lett) (Map.lookup (ownRoomLower lett) pos_state)
 
 
 --------------------------------------------------------------------------------
 -- Board
+
+posPaths :: Pos -> [[Pos]]
+posPaths init_pos = go (Set.singleton init_pos) init_pos
+  where 
+    go :: Set Pos -> Pos -> [[Pos]]
+    go visited pos = 
+      let new_neighs = Set.difference (posNeighs pos) visited
+       in if Set.null new_neighs 
+            then [[pos]]
+            else (pos :) <$> concatMap (go (Set.union new_neighs visited)) new_neighs
+
+posNeighs :: Pos -> Set Pos
+posNeighs = (posGraph Map.!)
 
 posGraph :: PosGraph
 posGraph = fromEdges edges
@@ -124,8 +174,8 @@ posGraph = fromEdges edges
 
     insertEdge :: PosGraph -> (Pos, Pos) -> PosGraph
     insertEdge graph (p1, p2) = 
-      let graph' = Map.insertWith (++) p1 [p2] graph
-       in Map.insertWith (++) p2 [p1] graph'
+      let graph' = Map.insertWith Set.union p1 (Set.singleton p2) graph
+       in Map.insertWith Set.union p2 (Set.singleton p1) graph'
 
     edges = 
       [ (RAU, RAL)
