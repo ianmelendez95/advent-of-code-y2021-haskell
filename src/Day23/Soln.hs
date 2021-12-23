@@ -116,6 +116,26 @@ soln =
 -- rawPaths pos lett = _
 
 
+--------------------------------------------------------------------------------
+-- Pos Letter Paths
+
+-- letterSubpaths :: Letter -> [Pos] -> [[Pos]]
+-- letterSubpaths l (cur_pos:next_pos:rest_pos) = _
+
+roomHallCrosses :: [Pos] -> Int
+roomHallCrosses (cur_pos:rest_pos@(next_pos:_))
+  | xor cur_is_hall next_is_hall = 1 + roomHallCrosses rest_pos
+  | otherwise = roomHallCrosses rest_pos
+  where 
+    cur_is_hall = Set.member cur_pos hallways
+    next_is_hall = Set.member next_pos hallways
+roomHallCrosses _ = 0
+
+xor :: Bool -> Bool -> Bool
+xor x y = (x || y) && not (x && y)
+
+toSnd :: (a -> b) -> a -> (a,b)
+toSnd f x = (x, f x)
 
 --------------------------------------------------------------------------------
 -- Pos Predicates
@@ -159,9 +179,7 @@ posPaths init_pos = go (Set.singleton init_pos) init_pos
     go :: Set Pos -> Pos -> [[Pos]]
     go visited pos = 
       let new_neighs = Set.difference (posNeighs pos) visited
-       in if Set.null new_neighs 
-            then [[pos]]
-            else (pos :) <$> concatMap (go (Set.union new_neighs visited)) new_neighs
+       in [pos] : ((pos :) <$> concatMap (go (Set.union new_neighs visited)) new_neighs)
 
 posNeighs :: Pos -> Set Pos
 posNeighs = (posGraph Map.!)
