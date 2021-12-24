@@ -1,6 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TupleSections #-}
 {-# LANGUAGE BangPatterns #-}
+{-# LANGUAGE MultiWayIf #-}
 
 module Day23.Soln where 
 
@@ -89,7 +90,7 @@ inputFile = "src/Day23/solved-input.txt"
 soln :: IO ()
 soln = 
   do rooms <- parseInput <$> TIO.readFile inputFile
-     let init_state = almost_solved_state -- roomsToState rooms
+     let init_state = almost_solved_state_2 -- roomsToState rooms
          (first_pos, first_letter) = head (Map.toList init_state)
 
          univs :: [[PosState]]
@@ -109,7 +110,7 @@ soln =
      mapM_ printState (take 3 $ univs !! 1)
 
      putStrLn "\n[States 3]"
-     mapM_ printState (take 20 $ univs !! 2)
+     mapM_ printState (take 3 $ univs !! 2)
   where 
     printStates :: [PosState] -> IO ()
     printStates = mapM_ printState . take 4
@@ -189,16 +190,22 @@ validLetterPosSet :: Letter -> PosState -> Set Pos
 validLetterPosSet lett pos_state = 
   let all_possible = possibleLetterPos lett
       unoccupied = Set.filter posUnoccupied all_possible
-   in if ownLowerHasWrongLetter 
-        then Set.delete (ownRoomUpper lett) unoccupied
-        else traceShowId unoccupied
+   in if own_lower_has_wrong_letter then Set.delete own_room_upper unoccupied
+                                    else unoccupied
   where 
     posUnoccupied :: Pos -> Bool
     posUnoccupied = isNothing . (`Map.lookup` pos_state)
 
-    ownLowerHasWrongLetter :: Bool
-    ownLowerHasWrongLetter = 
-      maybe False (/= lett) (Map.lookup (ownRoomLower lett) pos_state)
+    own_lower_has_wrong_letter :: Bool
+    own_lower_has_wrong_letter = 
+      maybe False (/= lett) (Map.lookup own_room_lower pos_state)
+
+    own_room_lower :: Pos
+    own_room_lower = ownRoomLower lett
+
+    own_room_upper :: Pos
+    own_room_upper = ownRoomUpper lett
+
 
 
 roomHallCrosses :: [Pos] -> Int
@@ -318,11 +325,24 @@ parseInput input =
 --------------------------------------------------------------------------------
 -- Test States
 
-almost_solved_state :: PosState
-almost_solved_state = Map.fromList
+almost_solved_state_1 :: PosState
+almost_solved_state_1 = Map.fromList
   [ (HLR, A)
 
   , (RAL, A)
+  , (RBL, B)
+  , (RBU, B)
+  , (RCL, C)
+  , (RCU, C)
+  , (RDL, D)
+  , (RDU, D)
+  ]
+
+almost_solved_state_2 :: PosState
+almost_solved_state_2 = Map.fromList
+  [ (HLR, A)
+  , (HLL, A)
+
   , (RBL, B)
   , (RBU, B)
   , (RCL, C)
