@@ -89,7 +89,7 @@ inputFile = "src/Day23/solved-input.txt"
 soln :: IO ()
 soln = 
   do rooms <- parseInput <$> TIO.readFile inputFile
-     let init_state = roomsToState rooms
+     let init_state = almost_solved_state -- roomsToState rooms
          (first_pos, first_letter) = head (Map.toList init_state)
 
          univs :: [[PosState]]
@@ -106,7 +106,7 @@ soln =
     --  mapM_ print (validLetterPaths first_letter first_pos)
 
      putStrLn "\n[States 2]"
-     mapM_ printState (take 1 $ univs !! 1)
+     mapM_ printState (take 3 $ univs !! 1)
 
      putStrLn "\n[States 3]"
      mapM_ printState (take 20 $ univs !! 2)
@@ -177,7 +177,7 @@ validLetterPaths pos_state lett cur_pos
 
     settled_in_room = 
       cur_pos == own_room_lower
-        || Just lett == Map.lookup own_room_lower pos_state
+        || ((cur_pos == ownRoomUpper lett) && (Just lett == Map.lookup own_room_lower pos_state))
     
     own_room_lower = ownRoomLower lett
 
@@ -191,7 +191,7 @@ validLetterPosSet lett pos_state =
       unoccupied = Set.filter posUnoccupied all_possible
    in if ownLowerHasWrongLetter 
         then Set.delete (ownRoomUpper lett) unoccupied
-        else unoccupied
+        else traceShowId unoccupied
   where 
     posUnoccupied :: Pos -> Bool
     posUnoccupied = isNothing . (`Map.lookup` pos_state)
@@ -220,6 +220,7 @@ toSnd f x = (x, f x)
 --------------------------------------------------------------------------------
 -- Pos Predicates
 
+-- | TODO this can be memoized _easily_
 possibleLetterPos :: Letter -> Set Pos
 possibleLetterPos = Set.union hallways . ownRooms
 
@@ -240,20 +241,6 @@ ownRoomUpper D = RDU
 
 hallways :: Set Pos
 hallways = Set.fromList [HLL, HLR, HML, HMM, HMR, HRL, HRR]
-
-canPartialMoveIntoPos :: Letter -> Pos -> PosState -> Bool
-canPartialMoveIntoPos lett pos pos_state = 
-  case Map.lookup pos pos_state of 
-    Just _ -> False  -- already full, no go
-    Nothing -> 
-      let is_hall = pos `Set.member` hallways
-          is_lower = pos == ownRoomLower lett 
-          is_valid_upper = pos == ownRoomUpper lett && ownRoomLowerHasSelfOrEmpty
-       in is_hall || is_lower || is_valid_upper
-  where 
-    ownRoomLowerHasSelfOrEmpty :: Bool
-    ownRoomLowerHasSelfOrEmpty =  
-      maybe True (== lett) (Map.lookup (ownRoomLower lett) pos_state)
 
 
 --------------------------------------------------------------------------------
@@ -326,6 +313,23 @@ parseInput input =
     parseLetter 'C' = C
     parseLetter 'D' = D
     parseLetter l = error [l]
+
+
+--------------------------------------------------------------------------------
+-- Test States
+
+almost_solved_state :: PosState
+almost_solved_state = Map.fromList
+  [ (HLR, A)
+
+  , (RAL, A)
+  , (RBL, B)
+  , (RBU, B)
+  , (RCL, C)
+  , (RCU, C)
+  , (RDL, D)
+  , (RDU, D)
+  ]
 
 
 --------------------------------------------------------------------------------
