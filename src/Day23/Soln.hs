@@ -83,7 +83,7 @@ type PosGraph = Map Pos (Set Pos)
 
 
 inputFile :: FilePath
-inputFile = "src/Day23/short-input.txt"
+inputFile = "src/Day23/solved-input.txt"
 
 
 soln :: IO ()
@@ -141,7 +141,9 @@ soln =
 iterState :: PosState -> [PosState]
 iterState pos_state = 
   let all_moves = concatMap nextLetterMoves (Map.toList pos_state)
-   in map (\(p1, p2) -> movePos p1 p2 pos_state) all_moves
+   in if null all_moves
+        then [pos_state]
+        else map (\(p1, p2) -> movePos p1 p2 pos_state) all_moves
   where 
     nextLetterMoves :: (Pos, Letter) -> [(Pos, Pos)]
     nextLetterMoves e@(p, _) = zip (repeat p) (nextLetterPos e)
@@ -163,13 +165,22 @@ movePos start_pos end_pos pos_state =
 -- Pos Letter Paths
 
 validLetterPaths :: PosState -> Letter -> Pos -> [[Pos]]
-validLetterPaths pos_state lett cur_pos =
-  let all_paths = posPaths cur_pos
-      cross_paths = filter validCrosses all_paths
-      valid_cross_paths = filter (all (`Set.member` valid_letter_pos_set) . tail) cross_paths
-   in valid_cross_paths
+validLetterPaths pos_state lett cur_pos
+  | settled_in_room = []
+  | otherwise = 
+    let all_paths = posPaths cur_pos
+        cross_paths = filter validCrosses all_paths
+        valid_cross_paths = filter (all (`Set.member` valid_letter_pos_set) . tail) cross_paths
+     in valid_cross_paths
   where 
     valid_letter_pos_set = validLetterPosSet lett pos_state
+
+    settled_in_room = 
+      cur_pos == own_room_lower
+        || Just lett == Map.lookup own_room_lower pos_state
+    
+    own_room_lower = ownRoomLower lett
+
 
 validCrosses :: [Pos] -> Bool
 validCrosses = (== 1) . roomHallCrosses
