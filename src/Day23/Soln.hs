@@ -92,15 +92,30 @@ soln =
      let init_state = roomsToState rooms
          (first_pos, first_letter) = head (Map.toList init_state)
 
+         univs :: [[PosState]]
+         univs = iterate (concatMap iterState) [init_state]
+
      putStrLn "\n[Initial Rooms]"
      mapM_ print rooms
 
      putStrLn "\n[Initial State]"
      putStrLn $ renderState init_state
      
-     putStrLn "\n[Valid Paths]"
-     print (first_pos, first_letter) 
-     mapM_ print (validLetterPaths first_letter first_pos)
+    --  putStrLn "\n[Valid Paths]"
+    --  print (first_pos, first_letter) 
+    --  mapM_ print (validLetterPaths first_letter first_pos)
+
+     putStrLn "\n[States 2]"
+     mapM_ printState (take 1 $ univs !! 1)
+
+     putStrLn "\n[States 3]"
+     mapM_ printState (take 20 $ univs !! 2)
+  where 
+    printStates :: [PosState] -> IO ()
+    printStates = mapM_ printState . take 4
+
+    printState :: PosState -> IO ()
+    printState = putStrLn . renderState
 
 
 -- nextStates :: PosState -> [PosState]
@@ -120,22 +135,47 @@ soln =
 -- rawPaths :: Pos -> Letter -> [[Pos]]
 -- rawPaths pos lett = _
 
+--------------------------------------------------------------------------------
+-- State Changes
+
+iterState :: PosState -> [PosState]
+iterState pos_state = 
+  let all_moves = concatMap nextLetterMoves (Map.toList pos_state)
+   in map (\(p1, p2) -> movePos p1 p2 pos_state) all_moves
+  where 
+    nextLetterMoves :: (Pos, Letter) -> [(Pos, Pos)]
+    nextLetterMoves e@(p, _) = zip (repeat p) (nextLetterPos e)
+
+    nextLetterPos :: (Pos, Letter) -> [Pos]
+    nextLetterPos (cur_pos, cur_letter) =  
+      let valid_paths = validLetterPaths pos_state cur_letter cur_pos
+          final_pos = map last valid_paths
+       in final_pos
+
+movePos :: Pos -> Pos -> PosState -> PosState
+movePos start_pos end_pos pos_state = 
+  case Map.lookup start_pos pos_state of 
+    Nothing -> error "Letter is not at the start position"
+    Just l  -> Map.insert end_pos l (Map.delete start_pos pos_state)
+
 
 --------------------------------------------------------------------------------
 -- Pos Letter Paths
 
-validLetterPaths :: Letter -> Pos -> [[Pos]]
-validLetterPaths lett cur_pos =
+validLetterPaths :: PosState -> Letter -> Pos -> [[Pos]]
+validLetterPaths pos_state lett cur_pos =
   let all_paths = posPaths cur_pos
       cross_paths = filter validCrosses all_paths
-   in cross_paths
-
+      valid_cross_paths = filter (all (`Set.member` valid_letter_pos_set) . tail) cross_paths
+   in valid_cross_paths
+  where 
+    valid_letter_pos_set = validLetterPosSet lett pos_state
 
 validCrosses :: [Pos] -> Bool
 validCrosses = (== 1) . roomHallCrosses
 
-validLetterPos :: Letter -> PosState -> Set Pos
-validLetterPos lett pos_state = 
+validLetterPosSet :: Letter -> PosState -> Set Pos
+validLetterPosSet lett pos_state = 
   let all_possible = possibleLetterPos lett
       unoccupied = Set.filter posUnoccupied all_possible
    in if ownLowerHasWrongLetter 
@@ -164,6 +204,7 @@ xor x y = (x || y) && not (x && y)
 
 toSnd :: (a -> b) -> a -> (a,b)
 toSnd f x = (x, f x)
+
 
 --------------------------------------------------------------------------------
 -- Pos Predicates
