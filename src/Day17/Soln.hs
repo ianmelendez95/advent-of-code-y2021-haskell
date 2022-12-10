@@ -43,23 +43,28 @@ data MoveResult = Towards | Away | Inside
 type Parser = Parsec Void T.Text
 
 
-inputFile = "src/Day17/short-input.txt"
+shortInput = "src/Day17/short-input.txt"
+fullInput = "src/Day17/full-input.txt"
 
 
 soln :: FilePath -> IO ()
-soln input_file = 
-  do ranges@(x_range, y_range) <- parseInput <$> TIO.readFile input_file
-     putStrLn "[Target]"
-     putStrLn $ "x: " ++ show x_range
-     putStrLn $ "y: " ++ show y_range
+soln input_file = do 
+  ranges@(x_range, y_range) <- parseInput <$> TIO.readFile input_file
+  putStrLn "[Target]"
+  putStrLn $ "x: " ++ show x_range
+  putStrLn $ "y: " ++ show y_range
 
-     let traj = simulateTrajectory (7, 2) (0, 0)
-         traj_with_inrange = map (\p -> (p, pointIsPastRanges ranges p)) traj
-         traj_in_range = trajectoryInRange ranges traj
+  let traj = simulateTrajectory (7, 2) (0, 0)
+      traj_with_inrange = map (\p -> (p, pointIsPastRanges ranges p)) traj
+      traj_in_range = trajectoryInRange ranges traj
 
-     mapM_ print (take 10 traj)
-     mapM_ print (take 10 traj_with_inrange)
-     mapM_ print (take 1000 traj_in_range)
+      init_vs = initialVels ranges
+
+  mapM_ print (take 10 traj)
+  mapM_ print (take 10 traj_with_inrange)
+  mapM_ print (take 1000 traj_in_range)
+
+  putStrLn $ "Vels Count: " ++ show (length init_vs)
 
     --  let (min_vx, max_vx) = xVelRange x_range
     --      (min_vy, max_vy) = yVelRange min_vx y_range
@@ -67,6 +72,18 @@ soln input_file =
     --  putStrLn $ "y velocity: " ++ show (min_vy, max_vy)
 
 -- New Impl
+
+initialVels :: (Range, Range) -> [Vel]
+initialVels ((x_min, x_max), (y_min, y_max)) = 
+  let vx_min = ceiling (sqrt (fromIntegral x_min))
+      vx_max = x_max + 1
+
+      vy_min = y_min - 1
+      vy_max = 100 -- arbitrary
+   in [(vx, vy) | vx <- [vx_min..vx_max], vy <- [vy_min..vy_max]]
+
+trajectoryHeight :: [Point] -> Int
+trajectoryHeight = maximum . map snd
 
 trajectoryStrikes :: (Range, Range) -> [Point] -> Bool
 trajectoryStrikes ranges = any (pointIsInRanges ranges)
