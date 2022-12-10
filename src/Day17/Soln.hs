@@ -49,22 +49,33 @@ fullInput = "src/Day17/full-input.txt"
 
 soln :: FilePath -> IO ()
 soln input_file = do 
-  ranges@(x_range, y_range) <- parseInput <$> TIO.readFile input_file
+  bounds@(x_range, y_range) <- parseInput <$> TIO.readFile input_file
   putStrLn "[Target]"
   putStrLn $ "x: " ++ show x_range
   putStrLn $ "y: " ++ show y_range
 
   let traj = simulateTrajectory (7, 2) (0, 0)
-      traj_with_inrange = map (\p -> (p, pointIsPastRanges ranges p)) traj
-      traj_in_range = trajectoryInRange ranges traj
+      traj_in_range = trajectoryInRange bounds traj
 
-      init_vs = initialVels ranges
+      init_vs = initialVels bounds
+      results = map (initialVelResult bounds) init_vs
 
-  mapM_ print (take 10 traj)
-  mapM_ print (take 10 traj_with_inrange)
-  mapM_ print (take 1000 traj_in_range)
+  -- mapM_ print (take 10 traj)
+  -- mapM_ print (take 1000 traj_in_range)
+
+  -- mapM_ print (take 100 $ zip init_vs results)
+  putStrLn $ "(7, 2): " <> show (initialVelResult bounds (7, 2))
+  putStrLn $ "(6, 3): " <> show (initialVelResult bounds (6, 3))
+  putStrLn $ "(9, 0): " <> show (initialVelResult bounds (9, 0))
+  putStrLn $ "(6, 9): " <> show (initialVelResult bounds (6, 9))
+  putStrLn $ "(17, -4): " <> show (initialVelResult bounds (17, -4))
 
   putStrLn $ "Vels Count: " ++ show (length init_vs)
+
+  -- putStrLn "[Hits]"
+  -- mapM_ print $ catMaybes results
+
+  putStrLn $ "Answer: " <> show (maximum (catMaybes results))
 
     --  let (min_vx, max_vx) = xVelRange x_range
     --      (min_vy, max_vy) = yVelRange min_vx y_range
@@ -73,42 +84,49 @@ soln input_file = do
 
 -- New Impl
 
-initialVels :: (Range, Range) -> [Vel]
+initialVelResult :: Bounds -> Vel -> Maybe Int
+initialVelResult bounds init_v = 
+  let traj = trajectoryInRange bounds $ simulateTrajectory init_v (0, 0)
+   in if trajectoryStrikes bounds traj 
+        then Just $ trajectoryHeight traj
+        else Nothing
+
+initialVels :: Bounds -> [Vel]
 initialVels ((x_min, x_max), (y_min, y_max)) = 
   let vx_min = ceiling (sqrt (fromIntegral x_min))
       vx_max = x_max + 1
 
       vy_min = y_min - 1
-      vy_max = 100 -- arbitrary
+      vy_max = abs (y_min - 1)
    in [(vx, vy) | vx <- [vx_min..vx_max], vy <- [vy_min..vy_max]]
 
 trajectoryHeight :: [Point] -> Int
 trajectoryHeight = maximum . map snd
 
-trajectoryStrikes :: (Range, Range) -> [Point] -> Bool
+trajectoryStrikes :: Bounds -> [Point] -> Bool
 trajectoryStrikes ranges = any (pointIsInRanges ranges)
+  where
+    pointIsInRanges :: Bounds -> Point -> Bool
+    pointIsInRanges ((x_min, x_max), (y_min, y_max)) (x, y) = x >= x_min && x <= x_max && y >= y_min && y <= y_max 
 
-trajectoryInRange :: (Range, Range) -> [Point] -> [Point]
+trajectoryInRange :: Bounds -> [Point] -> [Point]
 trajectoryInRange ranges = takeWhile (not . pointIsPastRanges ranges)
-
-pointIsInRanges :: (Range, Range) -> Point -> Bool
-pointIsInRanges ((x_min, x_max), (y_min, y_max)) (x, y) = x > x_min && x < x_max && y > y_min && y < y_max 
-
-pointIsPastRanges :: (Range, Range) -> Point -> Bool
-pointIsPastRanges ((_, x_max), (y_min, _)) (x, y) = x > x_max || y < y_min
+  where
+    pointIsPastRanges :: Bounds -> Point -> Bool
+    pointIsPastRanges ((_, x_max), (y_min, _)) (x, y) = x > x_max || y < y_min
 
 simulateTrajectory :: Vel -> Point -> [Point]
 simulateTrajectory (vx, vy) (x, y) = 
   (x, y) : simulateTrajectory (iterateVelX vx, iterateVelY vy) (x + vx, y + vy)
+  where
+    iterateVelX :: Int -> Int
+    iterateVelX vx 
+      | vx > 0 = vx - 1
+      | vx < 0 = vx + 1
+      | otherwise = vx
 
-iterateVelX :: Int -> Int
-iterateVelX vx 
-  | vx > 0 = vx - 1
-  | vx < 0 = vx + 1
-  | otherwise = vx
-
-iterateVelY :: Int -> Int
-iterateVelY vy = vy - 1
+    iterateVelY :: Int -> Int
+    iterateVelY vy = vy - 1
     
 -- Old Impl
 
