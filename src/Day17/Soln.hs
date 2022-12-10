@@ -33,7 +33,12 @@ import Data.Void
 
 import Debug.Trace
 
-type Range = (Int,Int)
+type Bounds = (Range, Range)
+type Range  = (Int, Int)
+type Vel    = (Int, Int)
+type Point  = (Int, Int)
+
+data MoveResult = Towards | Away | Inside
 
 type Parser = Parsec Void T.Text
 
@@ -41,20 +46,43 @@ type Parser = Parsec Void T.Text
 inputFile = "src/Day17/short-input.txt"
 
 
-soln :: IO ()
-soln = 
-  do (x_range, y_range) <- parseInput <$> TIO.readFile inputFile
+soln :: FilePath -> IO ()
+soln input_file = 
+  do ranges@(x_range, y_range) <- parseInput <$> TIO.readFile input_file
      putStrLn "[Target]"
      putStrLn $ "x: " ++ show x_range
      putStrLn $ "y: " ++ show y_range
 
-     let (min_vx, max_vx) = xVelRange x_range
-         (min_vy, max_vy) = yVelRange min_vx y_range
-     putStrLn $ "x velocity: " ++ show (min_vx, max_vx)
-     putStrLn $ "y velocity: " ++ show (min_vy, max_vy)
+     let traj = simulateTrajectory (7, 2) (0, 0)
+         traj_with_inrange = map (\p -> (p, pointIsPastRanges ranges p)) traj
 
+     mapM_ print (take 10 traj)
+     mapM_ print (take 10 traj_with_inrange)
 
+    --  let (min_vx, max_vx) = xVelRange x_range
+    --      (min_vy, max_vy) = yVelRange min_vx y_range
+    --  putStrLn $ "x velocity: " ++ show (min_vx, max_vx)
+    --  putStrLn $ "y velocity: " ++ show (min_vy, max_vy)
 
+-- New Impl
+
+pointIsPastRanges :: (Range, Range) -> Point -> Bool
+pointIsPastRanges ((_, x_max), (y_min, _)) (x, y) = x > x_max || y < y_min
+
+simulateTrajectory :: Vel -> Point -> [Point]
+simulateTrajectory (vx, vy) (x, y) = 
+  (x, y) : simulateTrajectory (iterateVelX vx, iterateVelY vy) (x + vx, y + vy)
+
+iterateVelX :: Int -> Int
+iterateVelX vx 
+  | vx > 0 = vx - 1
+  | vx < 0 = vx + 1
+  | otherwise = vx
+
+iterateVelY :: Int -> Int
+iterateVelY vy = vy - 1
+    
+-- Old Impl
 
 xVelRange :: Range -> Range
 xVelRange (x_beg, x_end) = 
