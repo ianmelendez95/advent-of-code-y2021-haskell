@@ -75,7 +75,8 @@ soln input_file = do
   -- putStrLn "[Hits]"
   -- mapM_ print $ catMaybes results
 
-  putStrLn $ "Answer: " <> show (maximum (catMaybes results))
+  -- putStrLn $ "Answer: " <> show (maximum (catMaybes results))
+  putStrLn $ "Answer: " <> show (length (catMaybes results))
 
     --  let (min_vx, max_vx) = xVelRange x_range
     --      (min_vy, max_vy) = yVelRange min_vx y_range
