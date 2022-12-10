@@ -55,9 +55,11 @@ soln input_file =
 
      let traj = simulateTrajectory (7, 2) (0, 0)
          traj_with_inrange = map (\p -> (p, pointIsPastRanges ranges p)) traj
+         traj_in_range = trajectoryInRange ranges traj
 
      mapM_ print (take 10 traj)
      mapM_ print (take 10 traj_with_inrange)
+     mapM_ print (take 1000 traj_in_range)
 
     --  let (min_vx, max_vx) = xVelRange x_range
     --      (min_vy, max_vy) = yVelRange min_vx y_range
@@ -65,6 +67,15 @@ soln input_file =
     --  putStrLn $ "y velocity: " ++ show (min_vy, max_vy)
 
 -- New Impl
+
+trajectoryStrikes :: (Range, Range) -> [Point] -> Bool
+trajectoryStrikes ranges = any (pointIsInRanges ranges)
+
+trajectoryInRange :: (Range, Range) -> [Point] -> [Point]
+trajectoryInRange ranges = takeWhile (not . pointIsPastRanges ranges)
+
+pointIsInRanges :: (Range, Range) -> Point -> Bool
+pointIsInRanges ((x_min, x_max), (y_min, y_max)) (x, y) = x > x_min && x < x_max && y > y_min && y < y_max 
 
 pointIsPastRanges :: (Range, Range) -> Point -> Bool
 pointIsPastRanges ((_, x_max), (y_min, _)) (x, y) = x > x_max || y < y_min
